@@ -176,17 +176,20 @@
 
 /* 睁眼状态：全身形象（占满 .body）
    - transform-origin: 50% 100%（脚底锚点） → 形象往上长，不会跨到下方文案。
-   - scale 改为 1.5：按用户要求把"生成后的形象"放大到 1.5 倍，视觉更有存在感。
+   - scale 改为 2.25：用户在 1.5 倍基础上再要求放大 1.5 倍 → 1.5 × 1.5 = 2.25。
      因为锚点在脚底，向上溢出的部分由 stage-area padding-top + .body 无 overflow
      共同兜住；.body 没设 overflow:hidden，所以头顶不会被裁。
-   - 配合下方去掉副标题 → stage-area 与文案间距变宽，1.5 倍放大的人物
-     顶端也不会顶到标题。 */
+   - translateY(40px)：用户要求"向下移动一些"。脚底锚点 + translateY 正值 →
+     整个形象整体往下推 40px，让胸口/脸部出现在画面中段，更有"走到你面前"的
+     在场感；下移不会超过 stage-area（.body 占 stage-area 的一部分，stage-area
+     底部还有足够空间）。
+   - 配合去掉副标题 → stage-area 与文案间距变宽，放大后人物顶端也不会顶到标题。 */
 .body .img-open {
   position: absolute; inset: 0;
   width: 100%; height: 100%;
   object-fit: contain;
   opacity: 0;
-  transform: scale(1.5);
+  transform: translateY(40px) scale(2.25);
   transform-origin: 50% 100%;
   transition: opacity .4s ease;
 }
