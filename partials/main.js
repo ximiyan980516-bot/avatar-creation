@@ -471,12 +471,16 @@ function doAwakeReveal() {
   stageArea.classList.add('awake');
 
   // 更新文案（半屏顶部切换为"已唤醒"的对话感）
-  // 生成结果这一屏：只保留标题一行，去掉副标题（用户要求"去掉第二行字"），
-  // 让放大到 1.5 倍的 APNG 形象有更多垂直呼吸空间，视觉焦点更聚焦。
-  sheetGreeting.textContent = 'QQ 秀醒啦';
-  sheetTitle.textContent = '你的 QQ 秀已苏醒';
+  // 生成结果这一屏：
+  //   greeting（22px 大标题） = "你的 QQ 秀已苏醒"
+  //   title（14px 第二行）   = "点「开启 QQ 秀」，把它留在消息列表顶部"
+  //   subtitle（12px 第三行） = 隐藏（用户要求去掉第三行辅助说明）
+  // 注意：.greeting 才是视觉上的大标题（fs:22 fw:700），.title 是次标题，
+  // .subtitle 才是最小的辅助说明——不是按源码顺序理解的"第二行"。
+  sheetGreeting.textContent = '你的 QQ 秀已苏醒';
+  sheetTitle.textContent = '点「开启 QQ 秀」，把它留在消息列表顶部';
   sheetSubtitle.textContent = '';
-  // 用 is-hidden 彻底隐藏，避免 subtitle 的 min-height:16px + margin-top:4px
+  // 用 is-hidden 彻底隐藏 subtitle，避免 min-height:16px + margin-top:4px
   // 空占 20px 留白。后续点"开启 QQ 秀"/"再看看"写入新文案时会移除这个类。
   sheetSubtitle.classList.add('is-hidden');
   replayReveal();
