@@ -297,21 +297,23 @@
   100% { opacity: 0; transform: scale(1.4); }
 }
 
-/* 角色台词气泡：放在人物左侧，尖尖朝右指向人物
+/* 角色台词气泡：紧贴人物左侧（人物在 stage 居中，左边缘 ≈ 25%），
+   气泡右尖几乎挨着人物头肩位置，更像"从他嘴边冒出来"
    文案保持简短（如 "Hi，初次见面~"），不要遮挡形象 */
 .speech {
   position: absolute;
-  left: 6%;
-  top: 32%;
+  /* 用 right 锚定，让气泡的右边缘距 stage 中心约 100px（人物半宽 90px + 一点呼吸） */
+  right: calc(50% + 86px);
+  top: 30%;
   transform: translateY(-6px) scale(.85);
-  transform-origin: left center;
+  transform-origin: right center;
   background: #fff;
   padding: 7px 12px; border-radius: 14px 14px 14px 4px;
   box-shadow: 0 6px 16px rgba(20,30,60,.12);
   font-size: 13px; color: #1a2540; font-weight: 500;
   opacity: 0; transition: all .35s ease;
   white-space: nowrap;
-  max-width: 38%;
+  max-width: 42%;
   pointer-events: none;
 }
 .speech::after {
