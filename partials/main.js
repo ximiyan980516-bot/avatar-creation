@@ -466,7 +466,12 @@ function doAwakeReveal() {
   //              让用户先看完整段动画再决定是否保存）
   // ====================================================
 
-  // t=0：闪光铺底
+  // t=0：闪光铺底 + 立刻隐藏底部唤醒按钮
+  // 用户反馈：唤醒后唤醒按钮（长按/语音/摇/单击那组）就该消失。之前只有
+  // .sheet.awoken 在 t=5.6s 才会收它们，中间 5 秒多按钮一直挂在画面上，
+  // 感觉"按钮没反应"。加 .waking 这个过渡类让 CSS 立刻隐藏 trigger；
+  // .save-row 仍在 .awoken 阶段才浮出（见 resetToSleeping 清理）。
+  sheet.classList.add('waking');
   body.classList.add('flashing');
   setTimeout(() => {
     // t≈0.38s：切到 awake，APNG 起播
@@ -627,7 +632,7 @@ function resetToSleeping({ closeAfter = true } = {}) {
   state.pressing = false;
   body.classList.remove('awake', 'flashing', 'burst');
   stageArea.classList.remove('awake');
-  sheet.classList.remove('counting', 'pressing', 'awoken');
+  sheet.classList.remove('counting', 'pressing', 'awoken', 'waking');
   // 清除唤醒成功屏临时隐藏副标题的标记，让 refreshHeadline 写入的
   // 触发器默认副标题可以正常显示。
   sheetSubtitle.classList.remove('is-hidden');

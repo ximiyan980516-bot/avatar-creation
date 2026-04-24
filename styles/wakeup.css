@@ -636,6 +636,14 @@
   align-items: center;
   animation: save-in .5s cubic-bezier(.2,1.3,.3,1);
 }
+/* 唤醒动作一旦触发（.sheet.waking）就立刻隐藏底部所有唤醒触发控件
+   （长按 / 摇一摇 / 语音 / 单击 那一排 .trigger），不等到 5.6s 后
+   .awoken 才收。用户反馈：唤醒按钮应该"唤醒后就消失"，而不是和
+   整段唤醒动画一起赖在屏幕上 5 秒多。
+   .save-row 仍然只在 .awoken 阶段出现 —— 即动画真正落地后才浮出，
+   避免在动图/爆发过程里误触。中间这段真空期底部就是干净的空白，
+   让用户把注意力集中在角色和文案上。 */
+.sheet.waking .trigger,
 .sheet.awoken .trigger { display: none !important; }
 .sheet.awoken .save-row { display: flex; }
 @keyframes save-in {
