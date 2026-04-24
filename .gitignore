@@ -23,3 +23,11 @@ dist/
 
 # CodeBuddy 本地数据（如果生成的话）
 .codebuddy/teams/
+
+# Non-ASCII filename source images — kept locally but must not be tracked,
+# because GitHub Pages' actions/checkout step has been failing on them
+# (all Pages deploys starting at commit 50ba0d4 crashed at the checkout
+# step). The actually-served avatar assets live under assets/avatar/ with
+# ASCII names (pink-portrait.png, pink-awake.png).
+粉色头像.png
+粉色女生_00000_iSpt.png
