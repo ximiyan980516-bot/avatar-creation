@@ -50,7 +50,7 @@
 
 /* 引导文案：与头像之间留出呼吸空间
    注意：上一版用 margin-top: -24px 让文案贴着头像，
-   但唤醒后 .img-open 会 scale(1.35) 向上长，
+   但唤醒后 .img-open 会 scale(1.5) 向上长，
    头部正好砸进文案区 —— 所以这里把负 margin 去掉，
    再补一点正向 margin-top，给形象顶部腾空间。 */
 .sheet .sheet-head {
@@ -117,6 +117,14 @@
   min-height: 16px;
   line-height: 1.5;
 }
+/* 唤醒成功后（生成结果屏）完全隐藏副标题 —— 只保留一行主标题"你的 QQ 秀已苏醒"，
+   让放大到 1.5 倍的 APNG 形象和标题构成更干净的视觉焦点。
+   不直接对 .subtitle 设 display:none，因为后续归位/再看看流程还会复用这个节点
+   做 toast 文案（main.js 里的 triggerReturn / saveCancelBtn）；用 is-hidden 类
+   由 JS 在唤醒成功那一刻加上，在后续写入新文案时再移除。 */
+.sheet .sheet-head .subtitle.is-hidden {
+  display: none;
+}
 
 /* 形象舞台
    - flex: 0 0 auto：只占自身高度，不再吞噬中段空间，sheet-head 才能往上贴。
@@ -125,7 +133,7 @@
      stage-area 自身的内边距 → 光柱 / ripple 等绝对定位元素的高度也会被撑高，
      所以改用 margin-top 把"位置"下推、padding-top 只保留少量给 .img-open 的
      scale 缓冲）。
-   - padding-top: 24px：给 .img-open 的 scale(1.18) 顶部留出生长余量。
+   - padding-top: 24px：给 .img-open 的 scale(1.5) 顶部留出生长余量。
    - padding-bottom: 8px：避免脚底光斑/涟漪与文案首行黏在一起。 */
 .sheet .stage-area {
   flex: 0 0 auto; position: relative;
@@ -168,16 +176,17 @@
 
 /* 睁眼状态：全身形象（占满 .body）
    - transform-origin: 50% 100%（脚底锚点） → 形象往上长，不会跨到下方文案。
-   - scale 从 1.35 降到 1.18：之前太大，导致头顶/肩膀超出 .body 上沿被裁，
-     看起来像"被遮挡"。1.18 让全身完整显示在 stage-area 内。
-   - 配合 stage-area 的 padding-top: 56px，形象整体也比以前低一点，
-     与上方 sheet 顶部、下方文案都拉开距离。 */
+   - scale 改为 1.5：按用户要求把"生成后的形象"放大到 1.5 倍，视觉更有存在感。
+     因为锚点在脚底，向上溢出的部分由 stage-area padding-top + .body 无 overflow
+     共同兜住；.body 没设 overflow:hidden，所以头顶不会被裁。
+   - 配合下方去掉副标题 → stage-area 与文案间距变宽，1.5 倍放大的人物
+     顶端也不会顶到标题。 */
 .body .img-open {
   position: absolute; inset: 0;
   width: 100%; height: 100%;
   object-fit: contain;
   opacity: 0;
-  transform: scale(1.18);
+  transform: scale(1.5);
   transform-origin: 50% 100%;
   transition: opacity .4s ease;
 }

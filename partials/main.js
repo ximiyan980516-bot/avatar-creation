@@ -471,9 +471,14 @@ function doAwakeReveal() {
   stageArea.classList.add('awake');
 
   // 更新文案（半屏顶部切换为"已唤醒"的对话感）
+  // 生成结果这一屏：只保留标题一行，去掉副标题（用户要求"去掉第二行字"），
+  // 让放大到 1.5 倍的 APNG 形象有更多垂直呼吸空间，视觉焦点更聚焦。
   sheetGreeting.textContent = 'QQ 秀醒啦';
-  sheetTitle.textContent = '这就是你专属的、有灵魂的 QQ 秀';
-  sheetSubtitle.textContent = '点「开启 QQ 秀」，把它留在消息列表顶部';
+  sheetTitle.textContent = '你的 QQ 秀已苏醒';
+  sheetSubtitle.textContent = '';
+  // 用 is-hidden 彻底隐藏，避免 subtitle 的 min-height:16px + margin-top:4px
+  // 空占 20px 留白。后续点"开启 QQ 秀"/"再看看"写入新文案时会移除这个类。
+  sheetSubtitle.classList.add('is-hidden');
   replayReveal();
 
   // 显示保存按钮（替换掉底部的唤醒控件）
@@ -495,12 +500,14 @@ saveBtn.addEventListener('click', () => {
     ],
     { duration: 320, easing: 'cubic-bezier(.3,1.6,.4,1)' }
   );
+  sheetSubtitle.classList.remove('is-hidden');
   sheetSubtitle.textContent = '好啦，这就送 QQ 秀回消息列表顶部~';
   setTimeout(triggerReturn, 260);
 });
 
 // "再看看" → 留在半屏里继续欣赏（不归位、不关闭）
 saveCancelBtn.addEventListener('click', () => {
+  sheetSubtitle.classList.remove('is-hidden');
   sheetSubtitle.textContent = '再看看 QQ 秀~ 准备好了随时点「开启 QQ 秀」';
 });
 
@@ -575,6 +582,9 @@ function resetToSleeping({ closeAfter = true } = {}) {
   body.classList.remove('awake', 'flashing');
   stageArea.classList.remove('awake');
   sheet.classList.remove('counting', 'pressing', 'awoken');
+  // 清除唤醒成功屏临时隐藏副标题的标记，让 refreshHeadline 写入的
+  // 触发器默认副标题可以正常显示。
+  sheetSubtitle.classList.remove('is-hidden');
 
   // 各触发控件复位
   pressBtn.classList.remove('done');
