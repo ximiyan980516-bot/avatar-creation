@@ -1292,14 +1292,11 @@
 .fly-body[data-return="1"].animate {
   animation: r1-fly 0.9s cubic-bezier(.4,0,.2,1) forwards;
 }
-/* 用户反馈："形象归位的图放大到 1.5 倍"——起飞瞬间把角色整体 scale 到
-   1.5，然后在飞行过程中平滑回到 1.0 落进 navbar 的圆形头像位。
-   为什么做成"起飞大 → 落位 1.0"，而不是全程 1.5x：
-     - 飞行终点 width/height 已经指定成 navbar 的 44×54 了，如果终点还
-       scale(1.5)，落位尺寸就会多撑出 50%，把左上角的 navbar 头像框撑爆；
-     - "放大 1.5 倍"的体感诉求发生在飞行途中，让醒来形象离开半屏那一刻
-       "变大一下再收进小圆"，比全程等比更有归位仪式感。
-   transform-origin 默认是中心，配合 translate(-50%,-50%) 不会引起位置偏移。*/
+/* 用户反馈："形象归位的图放大到 1.5 倍" + "终点的图也要放大到 1.5 倍"。
+   因此 R1 全程保持 scale(1.5)——起飞和落位都是 1.5x，中间无缩放跳变。
+   终点 width/height 仍锁到 navbar 的 44×54，scale(1.5) 只放大图像表现，
+   不撑开 navbar 布局槽位；navbar 端的视觉 1.5x 由 common.css 里
+   .navbar .me-avatar.returned > img 的 transform: scale(1.5) 做延续。*/
 @keyframes r1-fly {
   0% {
     opacity: 1;
@@ -1309,7 +1306,7 @@
     opacity: 1;
     left: var(--end-x); top: var(--end-y);
     width: var(--end-w); height: var(--end-h);
-    transform: translate(-50%, -50%) scale(1);
+    transform: translate(-50%, -50%) scale(1.5);
   }
 }
 

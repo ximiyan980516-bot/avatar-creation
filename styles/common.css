@@ -193,6 +193,13 @@ html, body {
   border: 0;
   box-shadow: none;
   background: transparent;
+  /* 用户反馈："终点的图也要放大到 1.5 倍"——和飞行体（r1-fly 全程 scale 1.5）
+     保持一致，让落到 navbar 后的 APNG 末帧也以 1.5x 呈现。用 transform 放大
+     而非改容器 width/height，避免撑开 navbar 相邻元素（用户名/右侧图标）。
+     transform-origin 默认中心 + object-position: center bottom 配合，角色
+     溢出的部分会向四周均匀扩，头部依然露在可视区域内。 */
+  transform: scale(1.5);
+  transform-origin: center center;
 }
 .navbar .me-info {
   margin-left: 10px; line-height: 1;
