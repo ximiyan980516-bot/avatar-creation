@@ -178,18 +178,17 @@
 
 /* 睁眼状态：全身形象（占满 .body）
    - transform-origin: 50% 100%（脚底锚点） → 形象往上长，不会跨到下方文案。
-   - scale 改为 1.9：在 2.25 基础上再缩小一些，避免形象过大顶到标题；
-     1.9 ≈ 2.25 × 0.84，比原来的 1.5 还是大一圈，保留"有存在感"。
-   - translateY(40px)：用户要求"向下移动一些"。脚底锚点 + translateY 正值 →
-     整个形象整体往下推 40px，让胸口/脸部出现在画面中段，更有"走到你面前"的
-     在场感。
-   - 配合下方 .sheet-head margin-top 加大 → 形象和文案间距更松。 */
+   - scale 改为 2.28：在 1.9 基础上再放大 1.2 倍（1.9 × 1.2 ≈ 2.28），
+     让生成的新版 APNG 形象更有"走到你面前"的存在感。
+   - translateY(70px)：用户要求\"再下移一些\"，从 40 → 70。脚底锚点 + translateY
+     正值 → 整个形象下推，脸部落到画面中段偏下。
+   - 这里只改 .img-open（唤醒后形象），.img-closed（唤醒前的圆头像）保持不变。 */
 .body .img-open {
   position: absolute; inset: 0;
   width: 100%; height: 100%;
   object-fit: contain;
   opacity: 0;
-  transform: translateY(40px) scale(1.9);
+  transform: translateY(70px) scale(2.28);
   transform-origin: 50% 100%;
   transition: opacity .4s ease;
 }
