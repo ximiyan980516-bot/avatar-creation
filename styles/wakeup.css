@@ -56,7 +56,9 @@
 .sheet .sheet-head {
   text-align: center;
   padding: 0 28px 6px;
-  margin-top: 8px;
+  /* margin-top 从 8px → 32px：用户要求\"文案下移一些\"，让标题与上方
+     形象之间留更多呼吸空间，视觉分层更清晰。 */
+  margin-top: 32px;
   margin-bottom: 14px;
   flex-shrink: 0;
   position: relative;
@@ -176,20 +178,18 @@
 
 /* 睁眼状态：全身形象（占满 .body）
    - transform-origin: 50% 100%（脚底锚点） → 形象往上长，不会跨到下方文案。
-   - scale 改为 2.25：用户在 1.5 倍基础上再要求放大 1.5 倍 → 1.5 × 1.5 = 2.25。
-     因为锚点在脚底，向上溢出的部分由 stage-area padding-top + .body 无 overflow
-     共同兜住；.body 没设 overflow:hidden，所以头顶不会被裁。
+   - scale 改为 1.9：在 2.25 基础上再缩小一些，避免形象过大顶到标题；
+     1.9 ≈ 2.25 × 0.84，比原来的 1.5 还是大一圈，保留"有存在感"。
    - translateY(40px)：用户要求"向下移动一些"。脚底锚点 + translateY 正值 →
      整个形象整体往下推 40px，让胸口/脸部出现在画面中段，更有"走到你面前"的
-     在场感；下移不会超过 stage-area（.body 占 stage-area 的一部分，stage-area
-     底部还有足够空间）。
-   - 配合去掉副标题 → stage-area 与文案间距变宽，放大后人物顶端也不会顶到标题。 */
+     在场感。
+   - 配合下方 .sheet-head margin-top 加大 → 形象和文案间距更松。 */
 .body .img-open {
   position: absolute; inset: 0;
   width: 100%; height: 100%;
   object-fit: contain;
   opacity: 0;
-  transform: translateY(40px) scale(2.25);
+  transform: translateY(40px) scale(1.9);
   transform-origin: 50% 100%;
   transition: opacity .4s ease;
 }
