@@ -133,6 +133,9 @@ const sheetSubtitle = document.getElementById('sheetSubtitle');
 const stageArea   = document.getElementById('stageArea');
 const body        = document.getElementById('body');
 const speech      = document.getElementById('speech');
+/* 气泡里真正承载文字 + contenteditable 的节点；
+   单独拆出来是为了让 ▶ 播放按钮能和文字并排、又不会被 contenteditable 影响 */
+const speechText  = document.getElementById('speechText');
 const flyBody     = document.getElementById('flyBody');
 
 // 6 种触发控件
@@ -457,7 +460,7 @@ function doAwakeReveal() {
   // 显示台词：优先用用户保存的 Slogan，否则随机
   const savedSlogan = (localStorage.getItem('qqxiu_slogan') || '').trim();
   const text = savedSlogan || SPEECHES[Math.floor(Math.random() * SPEECHES.length)];
-  speech.textContent = text;
+  speechText.textContent = text;
   stageArea.classList.add('awake');
 
   // 更新文案（半屏顶部切换为"已唤醒"的对话感）
@@ -649,13 +652,16 @@ function refreshVoiceUI() {
 refreshVoiceUI();
 
 // ---- 编辑：进入 / 保存 / 取消 ----
+// 说明：contenteditable 挂在 `.speech-text` 上（文字 span），而不是气泡外壳，
+// 这样气泡内部的 ▶ 按钮不会被当成可编辑内容，点按钮也不会进入编辑态。
+// 编辑高亮的 `.editing` class 仍然加在 .speech 外壳上（控制整个气泡外观）。
 function enterEditMode() {
   speech.classList.add('editing');
-  speech.contentEditable = 'true';
-  speech.focus();
+  speechText.contentEditable = 'true';
+  speechText.focus();
   // 选中全部文字，方便直接覆盖
   const range = document.createRange();
-  range.selectNodeContents(speech);
+  range.selectNodeContents(speechText);
   const sel = window.getSelection();
   sel.removeAllRanges();
   sel.addRange(range);
@@ -663,41 +669,41 @@ function enterEditMode() {
 function exitEditMode(save) {
   if (!speech.classList.contains('editing')) return;
   speech.classList.remove('editing');
-  speech.contentEditable = 'false';
+  speechText.contentEditable = 'false';
   if (save) {
-    let text = (speech.textContent || '').replace(/\s+/g, ' ').trim();
+    let text = (speechText.textContent || '').replace(/\s+/g, ' ').trim();
     if (text.length > SLOGAN_MAX_LEN) text = text.slice(0, SLOGAN_MAX_LEN);
     if (!text) text = 'Hi，初次见面~'; // 空内容兜底
-    speech.textContent = text;
+    speechText.textContent = text;
     localStorage.setItem(SLOGAN_KEY, text);
   } else {
     // 取消：还原为存档值
     const saved = localStorage.getItem(SLOGAN_KEY);
-    if (saved) speech.textContent = saved;
+    if (saved) speechText.textContent = saved;
   }
 }
 speechEditBtn.addEventListener('click', (e) => {
   e.stopPropagation();
   enterEditMode();
 });
-// 直接点击气泡也进入编辑（仅在唤醒后，由 .speech-wrap 显示控制）
-speech.addEventListener('click', () => {
+// 直接点击气泡文字也进入编辑（点 ▶ 按钮不触发，由按钮自身 stopPropagation 接管）
+speechText.addEventListener('click', () => {
   if (speech.classList.contains('editing')) return;
   enterEditMode();
 });
-speech.addEventListener('keydown', (e) => {
+speechText.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     e.preventDefault();
-    speech.blur(); // 触发 blur → 保存
+    speechText.blur(); // 触发 blur → 保存
   } else if (e.key === 'Escape') {
     e.preventDefault();
     exitEditMode(false);
-    speech.blur();
+    speechText.blur();
   }
 });
-speech.addEventListener('blur', () => exitEditMode(true));
+speechText.addEventListener('blur', () => exitEditMode(true));
 // 粘贴时去掉富文本格式，限长
-speech.addEventListener('paste', (e) => {
+speechText.addEventListener('paste', (e) => {
   e.preventDefault();
   const text = (e.clipboardData || window.clipboardData).getData('text') || '';
   const clean = text.replace(/\s+/g, ' ').slice(0, SLOGAN_MAX_LEN);
@@ -750,7 +756,7 @@ async function fetchTTS(text, voice) {
 }
 
 async function playSlogan() {
-  const text = (speech.textContent || '').trim();
+  const text = (speechText.textContent || '').trim();
   if (!text) return;
   // 已有音频在播 → 停掉重播
   if (currentAudio) {

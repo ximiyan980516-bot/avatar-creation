@@ -323,12 +323,15 @@
   opacity: 1; transform: translateY(0) scale(1);
 }
 
-/* 气泡本体 */
+/* 气泡本体：内含 [▶ 播放按钮][文字 span]，左右横排 */
 .speech {
   position: relative;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   background: #fff;
-  padding: 7px 12px;
+  /* 左 padding 收窄一些，为内嵌的 ▶ 按钮让位 */
+  padding: 5px 12px 5px 6px;
   /* 圆角：尾尖在左下 → 左下角收成 4px */
   border-radius: 14px 14px 14px 4px;
   border-bottom-left-radius: 4px;
@@ -336,10 +339,10 @@
   box-shadow: 0 6px 16px rgba(20,30,60,.12);
   font-size: 13px; color: #1a2540; font-weight: 500;
   white-space: nowrap;
-  max-width: 220px;
+  max-width: 240px;
   /* 唤醒后允许点击编辑 */
   pointer-events: auto;
-  cursor: text;
+  cursor: default;
   outline: none;
   /* 编辑时给一个柔和的呼吸边框 */
   transition: box-shadow .2s ease, transform .2s ease;
@@ -356,17 +359,56 @@
   width: 8px; height: 8px; background: #fff;
   box-shadow: -2px 2px 4px rgba(20,30,60,.04);
 }
+/* 文字部分（真正可编辑的载体） */
+.speech-text {
+  display: inline-block;
+  cursor: text;
+  outline: none;
+  min-width: 6px; /* 空内容时仍有点击区 */
+}
 /* 编辑态：高亮边框 + 允许换行/光标 */
 .speech.editing {
-  cursor: text;
   white-space: normal;
   box-shadow: 0 0 0 2px rgba(58,118,255,.45), 0 8px 22px rgba(20,30,60,.18);
 }
-/* 空内容时显示 placeholder */
-.speech:empty::before {
+/* 空内容时显示 placeholder（挂在文字 span 上，避免把按钮算进"空"的判断） */
+.speech-text:empty::before {
   content: attr(data-placeholder);
   color: #9aa3b8;
   font-weight: 400;
+}
+
+/* ─────────── 气泡内嵌的 ▶ 播放按钮 ───────────
+   位于文字左侧，默认是一个浅蓝圆形的小喇叭，点击播放 TTS。
+   loading / playing 态用同一套视觉切换。 */
+.sp-play {
+  flex: 0 0 auto;
+  width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(58,118,255,.12);
+  color: #3a76ff;
+  cursor: pointer;
+  transition: background .15s ease, transform .1s ease, color .15s ease;
+}
+.sp-play:hover { background: rgba(58,118,255,.22); }
+.sp-play:active { transform: scale(.92); }
+.sp-play svg { display: block; }
+/* ▶ 图标相对圆心略右移 1px，视觉上更"居中" */
+.sp-play .ic-play { transform: translateX(1px); }
+.sp-play .ic-loading { display: none; }
+.sp-play.loading { background: rgba(58,118,255,.18); }
+.sp-play.loading .ic-play { display: none; }
+.sp-play.loading .ic-loading {
+  display: block;
+  animation: st-spin .8s linear infinite;
+  transform: none;
+}
+.sp-play.playing {
+  background: #3a76ff;
+  color: #fff;
 }
 
 /* ─────────── 迷你工具条 ───────────
@@ -451,14 +493,7 @@
   color: #3a76ff; font-weight: 600;
 }
 
-/* 播放按钮的 loading 切换 */
-.st-play .ic-loading { display: none; }
-.st-play.loading .ic-play { display: none; }
-.st-play.loading .ic-loading {
-  display: block;
-  animation: st-spin .8s linear infinite;
-}
-.st-play.playing { background: rgba(58,118,255,.35); }
+/* 旋转动画：供气泡内 .sp-play loading 态复用 */
 @keyframes st-spin {
   to { transform: rotate(360deg); }
 }
