@@ -302,18 +302,23 @@
   100% { opacity: 0; transform: scale(1.4); }
 }
 
-/* 角色台词气泡：紧贴人物左侧（人物在 stage 居中，左边缘 ≈ 25%），
-   气泡右尖几乎挨着人物头肩位置，更像"从他嘴边冒出来"
+/* 角色台词气泡：紧贴人物右侧（人物在 stage 居中，右边缘 ≈ 中心+90px），
+   气泡左尖几乎挨着人物头肩位置，更像"从他嘴边冒出来"
+   位置上移到偏头顶位置，形成"从头顶轻轻飘出"的对话感
    文案保持简短（如 "Hi，初次见面~"），不要遮挡形象 */
 .speech {
   position: absolute;
-  /* 用 right 锚定，让气泡的右边缘距 stage 中心约 100px（人物半宽 90px + 一点呼吸） */
-  right: calc(50% + 86px);
-  top: 30%;
+  /* 用 left 锚定，让气泡的左边缘距 stage 中心约 86px（人物半宽 90px - 一点重叠让尾尖贴肩） */
+  left: calc(50% + 86px);
+  top: 18%;
   transform: translateY(-6px) scale(.85);
-  transform-origin: right center;
+  transform-origin: left center;
   background: #fff;
-  padding: 7px 12px; border-radius: 14px 14px 14px 4px;
+  padding: 7px 12px;
+  /* 圆角镜像：尾尖在左下 → 把左下角收成 4px，其它仍是 14px */
+  border-radius: 14px 14px 14px 4px;
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 14px;
   box-shadow: 0 6px 16px rgba(20,30,60,.12);
   font-size: 13px; color: #1a2540; font-weight: 500;
   opacity: 0; transition: all .35s ease;
@@ -323,11 +328,13 @@
 }
 .speech::after {
   content: ""; position: absolute;
-  right: -4px; top: 50%;
+  /* 尾尖移到左侧，朝左指向人物 */
+  left: -4px; top: 50%;
   margin-top: -4px;
   transform: rotate(45deg);
   width: 8px; height: 8px; background: #fff;
-  box-shadow: 2px -2px 4px rgba(20,30,60,.04);
+  /* 阴影方向同步翻转，保持立体感正确 */
+  box-shadow: -2px 2px 4px rgba(20,30,60,.04);
 }
 .body.awake ~ .speech,
 .stage-area.awake .speech {
