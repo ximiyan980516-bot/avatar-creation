@@ -127,7 +127,8 @@ html {
 .press-btn,
 .tap-btn,
 .shake-btn,
-.voice-btn {
+.voice-btn,
+.click-btn {
   background: var(--brand-standard) !important;   /* 实蓝实心，不用渐变 */
   color: #fff !important;
   box-shadow:
@@ -140,7 +141,8 @@ html {
 .voice-btn.recording,
 .press-btn.pressing,
 .tap-btn.tapping,
-.shake-btn.shaking {
+.shake-btn.shaking,
+.click-btn.clicked {
   background: #0088E5 !important;   /* 实蓝加深 */
   box-shadow:
     0 1px 0 rgba(255, 255, 255, .3) inset,
