@@ -71,9 +71,11 @@
   opacity: 0;
   transform: translateY(8px);
 }
+/* 两行节奏：title 先出（.75s）→ subtitle 紧随（1.45s）。
+   greeting 行虽隐藏，仍保留 keyframes 以兼容旧逻辑。 */
 .sheet.reveal .sheet-head .greeting { animation: line-in .55s cubic-bezier(.2,.9,.3,1) .75s forwards; }
-.sheet.reveal .sheet-head .title    { animation: line-in .55s cubic-bezier(.2,.9,.3,1) 1.55s forwards; }
-.sheet.reveal .sheet-head .subtitle { animation: line-in .55s cubic-bezier(.2,.9,.3,1) 2.35s forwards; }
+.sheet.reveal .sheet-head .title    { animation: line-in .55s cubic-bezier(.2,.9,.3,1) .75s forwards; }
+.sheet.reveal .sheet-head .subtitle { animation: line-in .55s cubic-bezier(.2,.9,.3,1) 1.45s forwards; }
 @keyframes line-in {
   0%   { opacity: 0; transform: translateY(12px); filter: blur(4px); }
   60%  { filter: blur(0); }
@@ -81,7 +83,10 @@
 }
 
 /* 最大一级：打招呼 —— 对话感的核心 */
+/* 简化为两行版式：隐藏问候行，只保留 title + subtitle 两行核心信息
+   （DOM 仍保留，便于 main.js 继续写入文案，避免大面积改逻辑） */
 .sheet .sheet-head .greeting {
+  display: none;
   font-size: 22px; font-weight: 700;
   color: #1a2540;
   letter-spacing: .3px;
@@ -667,14 +672,14 @@
   100% { transform: translate(0,0) scale(1.4); opacity: 0; }
 }
 
-/* W3 - 光柱降临：从天而降的蓝色灯光（梯形 · 上窄下宽）
-   组合：外层柔光梯形 + 内层亮芯梯形 + 地面光斑 + 飘落蓝尘
-   关键调优（与上一版相比）：
-   1) 整体不透明度调低（核心从 .95 → .55、柔光 .55 → .32），不再喧宾夺主。
-   2) 全部加 mix-blend-mode: screen —— 屏幕混合让光柱与形象"相加"而非"遮盖"，
-      形象的颜色和细节会透过光柱保留，避免角色被光柱压成一团蓝。
-   3) 入场动画改成「弱 → 强 → 弱」循环呼吸（w3-pulse），更像是真的灯光在颤动，
-      而不是一次性"啪"地打满。 */
+/* W3 - 光柱降临：从顶部打下来的纯白圣光柱
+   组合：顶部光源高光 + 外层柔光梯形 + 内层亮芯梯形 + 地面光斑 + 飘落白尘
+   关键调优（白光 · 顶部下落版）：
+   1) 颜色全部改为纯白（rgba(255,255,255,a)），更"圣洁、空气感"，不再带蓝相。
+   2) 渐变重心上移：顶部 alpha 高、底部快速衰减，形成"光从天顶垂下、越往下越散"的视觉。
+   3) lightbeam::before 在顶部加一个圆形高光"光源点"，强化"光从此处打下"的来源感。
+   4) 入场动画 transform-origin: top center + 更迅捷的缓动，模拟"咔哒一下打开"。
+   5) mix-blend-mode: screen 仍保留，避免遮压人物色彩。 */
 .lightbeam {
   position: absolute; left: 50%; top: 0;
   transform: translateX(-50%);
@@ -686,17 +691,34 @@
 }
 [data-wake="3"] .lightbeam { display: block; }
 
-/* 外层柔光梯形 —— 上窄下宽，模拟舞台聚光灯打开的扇面（淡） */
+/* 顶部光源点：一个圆形白色高光锚在顶端，作为"光的起点" */
+.lightbeam::before {
+  content: ""; position: absolute;
+  left: 50%; top: -10px;
+  transform: translateX(-50%) scale(0);
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  background: radial-gradient(circle at center,
+    rgba(255,255,255,.95) 0%,
+    rgba(255,255,255,.55) 25%,
+    rgba(255,255,255,.18) 55%,
+    transparent 100%);
+  filter: blur(2px);
+  opacity: 0;
+  mix-blend-mode: screen;
+}
+
+/* 外层柔光梯形 —— 上窄下宽，模拟舞台聚光灯打开的扇面（白·顶部偏亮） */
 .lightbeam .beam-soft {
   position: absolute; left: 50%; top: 0;
   transform: translateX(-50%) scaleY(0);
   transform-origin: top center;
   width: 240px; height: 100%;
   background: linear-gradient(180deg,
-    rgba(150,200,255,.32) 0%,
-    rgba(120,180,255,.22) 35%,
-    rgba(90,160,255,.10)  70%,
-    rgba(60,140,255,.02)  100%);
+    rgba(255,255,255,.55) 0%,
+    rgba(255,255,255,.32) 25%,
+    rgba(255,255,255,.14) 60%,
+    rgba(255,255,255,.02) 100%);
   /* 关键：clip-path 把矩形切成梯形（顶 38%-62% 收窄，底 0-100% 展开）*/
   clip-path: polygon(38% 0%, 62% 0%, 100% 100%, 0% 100%);
   filter: blur(4px);
@@ -704,17 +726,17 @@
   mix-blend-mode: screen;
 }
 
-/* 内层亮芯梯形 —— 同样梯形但更窄、稍亮，是光柱的"骨"（淡） */
+/* 内层亮芯梯形 —— 同样梯形但更窄、更亮（白·顶部最亮） */
 .lightbeam .beam-core {
   position: absolute; left: 50%; top: 0;
   transform: translateX(-50%) scaleY(0);
   transform-origin: top center;
   width: 240px; height: 100%;
   background: linear-gradient(180deg,
-    rgba(220,240,255,.55) 0%,
-    rgba(170,210,255,.35) 30%,
-    rgba(110,180,255,.18) 65%,
-    rgba(70,150,255,.03)  100%);
+    rgba(255,255,255,.85) 0%,
+    rgba(255,255,255,.50) 25%,
+    rgba(255,255,255,.20) 60%,
+    rgba(255,255,255,.03) 100%);
   /* 内层比外层更窄：顶 46-54%，底 25-75% */
   clip-path: polygon(46% 0%, 54% 0%, 75% 100%, 25% 100%);
   filter: blur(2px);
@@ -722,15 +744,15 @@
   mix-blend-mode: screen;
 }
 
-/* 地面光斑 —— 椭圆扁平 hot-spot，承接光柱底部（淡） */
+/* 地面光斑 —— 椭圆扁平 hot-spot，承接光柱底部（白） */
 .lightbeam .beam-spot {
   position: absolute; left: 50%; bottom: 16%;
   transform: translateX(-50%) scale(0);
   width: 200px; height: 38px;
   background: radial-gradient(ellipse at center,
-    rgba(200,230,255,.55) 0%,
-    rgba(130,190,255,.28) 35%,
-    rgba(80,150,255,.10)  65%,
+    rgba(255,255,255,.65) 0%,
+    rgba(255,255,255,.30) 35%,
+    rgba(255,255,255,.10) 65%,
     transparent 100%);
   border-radius: 50%;
   filter: blur(2px);
@@ -738,7 +760,7 @@
   mix-blend-mode: screen;
 }
 
-/* 飘落蓝尘 —— 4 颗微粒沿光柱缓缓下落，跟随梯形开口分布 */
+/* 飘落白尘 —— 4 颗微粒沿光柱缓缓下落，跟随梯形开口分布 */
 .lightbeam .beam-dust {
   position: absolute; left: 50%; top: 0;
   width: 180px; height: 100%;
@@ -749,8 +771,8 @@
   position: absolute;
   width: 4px; height: 4px; border-radius: 50%;
   background: radial-gradient(circle,
-    rgba(230,245,255,.95) 0%,
-    rgba(140,200,255,.55) 50%,
+    rgba(255,255,255,1)   0%,
+    rgba(255,255,255,.55) 50%,
     transparent 100%);
   filter: blur(.4px);
   opacity: 0;
@@ -762,53 +784,70 @@
 .lightbeam .beam-dust i:nth-child(3) { left: 58%; }
 .lightbeam .beam-dust i:nth-child(4) { left: 48%; }
 
-/* 入场动画：地面光斑先亮 → 光柱从顶部展开 → 之后切换为持续 pulse 呼吸 → 蓝尘飘落
+/* 入场动画：顶部光源点先亮（"光源开启"瞬间）→ 光柱 scaleY 从顶部俯冲展开 →
+   地面光斑承接 → 之后切换为持续 pulse 呼吸 → 白尘飘落
    节奏说明：
-   - w3-beam（一次性 1s）：scaleY 从 0 展开到 1，模拟"灯光打开"的瞬间
-   - w3-pulse（循环 2.6s，延迟 1s 接力）：透明度在 0.35 ↔ 0.95 之间起伏，
-     视觉上就是"弱→强→弱→强"循环，像真实的舞台灯在轻轻颤动 */
+   - w3-source（一次性 .35s）：顶部光源点先 pop in，告诉用户"光从这里来"
+   - w3-beam（一次性 .85s）：scaleY 从 0 → 1，origin: top center → 视觉上是"光从顶端俯冲下来"
+     缓动改 cubic-bezier(.1,.7,.2,1)：起势更猛、尾段平稳，像真实的灯光"咔哒一下"打到地面
+   - w3-pulse（循环 2.6s）：在持续状态下做透明度呼吸，避免静止感 */
+[data-wake="3"].pressing .lightbeam::before {
+  animation:
+    w3-source .35s cubic-bezier(.2,1.4,.3,1) 0s forwards,
+    w3-pulse-source 2.6s ease-in-out 1.0s infinite;
+}
 [data-wake="3"].pressing .beam-spot {
   animation:
-    w3-spot 1.2s ease-out forwards,
-    w3-pulse-spot 2.6s ease-in-out 1.2s infinite;
+    w3-spot 1.0s ease-out .55s forwards,
+    w3-pulse-spot 2.6s ease-in-out 1.55s infinite;
 }
 [data-wake="3"].pressing .beam-soft {
   animation:
-    w3-beam 1.0s cubic-bezier(.2,.8,.3,1) .15s forwards,
-    w3-pulse-soft 2.6s ease-in-out 1.15s infinite;
+    w3-beam .85s cubic-bezier(.1,.7,.2,1) .15s forwards,
+    w3-pulse-soft 2.6s ease-in-out 1.0s infinite;
 }
 [data-wake="3"].pressing .beam-core {
   animation:
-    w3-beam 1.0s cubic-bezier(.2,.8,.3,1) .25s forwards,
-    w3-pulse-core 2.6s ease-in-out 1.25s infinite;
+    w3-beam .85s cubic-bezier(.1,.7,.2,1) .22s forwards,
+    w3-pulse-core 2.6s ease-in-out 1.07s infinite;
 }
 [data-wake="3"].pressing .beam-dust i:nth-child(1) { animation: w3-dust 1.6s ease-in .55s infinite; }
 [data-wake="3"].pressing .beam-dust i:nth-child(2) { animation: w3-dust 1.8s ease-in .75s infinite; }
 [data-wake="3"].pressing .beam-dust i:nth-child(3) { animation: w3-dust 1.4s ease-in .65s infinite; }
 [data-wake="3"].pressing .beam-dust i:nth-child(4) { animation: w3-dust 2.0s ease-in .85s infinite; }
 
+@keyframes w3-source {
+  0%   { transform: translateX(-50%) scale(0);   opacity: 0; }
+  60%  { transform: translateX(-50%) scale(1.2); opacity: 1; }
+  100% { transform: translateX(-50%) scale(1);   opacity: .9; }
+}
+@keyframes w3-pulse-source {
+  0%, 100% { transform: translateX(-50%) scale(.95); opacity: .55; }
+  50%      { transform: translateX(-50%) scale(1.08); opacity: .95; }
+}
 @keyframes w3-beam {
   0%   { transform: translateX(-50%) scaleY(0);   opacity: 0; }
-  35%  { opacity: .6; }
-  100% { transform: translateX(-50%) scaleY(1);   opacity: .55; }
+  20%  { opacity: .85; }
+  100% { transform: translateX(-50%) scaleY(1);   opacity: .7; }
 }
 @keyframes w3-spot {
   0%   { transform: translateX(-50%) scale(0);    opacity: 0; }
-  40%  { transform: translateX(-50%) scale(1.2);  opacity: .7; }
-  100% { transform: translateX(-50%) scale(1);    opacity: .55; }
+  40%  { transform: translateX(-50%) scale(1.2);  opacity: .85; }
+  100% { transform: translateX(-50%) scale(1);    opacity: .65; }
 }
-/* 弱 → 强 → 弱 循环（透明度起伏），保持 scaleY=1 */
+/* 弱 → 强 → 弱 循环（透明度起伏），保持 scaleY=1。
+   白光版整体 alpha 比蓝光版更高一档，让"打光感"更明显。 */
 @keyframes w3-pulse-soft {
-  0%, 100% { transform: translateX(-50%) scaleY(1); opacity: .25; }
-  50%      { transform: translateX(-50%) scaleY(1); opacity: .65; }
+  0%, 100% { transform: translateX(-50%) scaleY(1); opacity: .35; }
+  50%      { transform: translateX(-50%) scaleY(1); opacity: .80; }
 }
 @keyframes w3-pulse-core {
-  0%, 100% { transform: translateX(-50%) scaleY(1); opacity: .35; }
-  50%      { transform: translateX(-50%) scaleY(1); opacity: .85; }
+  0%, 100% { transform: translateX(-50%) scaleY(1); opacity: .50; }
+  50%      { transform: translateX(-50%) scaleY(1); opacity: 1; }
 }
 @keyframes w3-pulse-spot {
-  0%, 100% { transform: translateX(-50%) scale(.95); opacity: .30; }
-  50%      { transform: translateX(-50%) scale(1.05); opacity: .75; }
+  0%, 100% { transform: translateX(-50%) scale(.95); opacity: .35; }
+  50%      { transform: translateX(-50%) scale(1.05); opacity: .85; }
 }
 @keyframes w3-dust {
   0%   { top: 0%;   opacity: 0; transform: translateY(0)    scale(.6); }
