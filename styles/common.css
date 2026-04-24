@@ -193,17 +193,20 @@ html, body {
 .navbar .me-avatar.returned > img {
   border-radius: 12px;
   object-fit: contain;
-  object-position: center bottom;
+  /* 用户反馈："归位的形象偏下了"。
+     原先用 object-position: center bottom + transform-origin: center center，
+     导致全身像先贴容器底部，再以中心为轴放大 1.5x——重心本来就偏下，放大后
+     头更被压到容器下半，视觉上像"角色沉下去了"。
+     改成：图先顶对齐容器（center top），再以顶为锚点向下放大 1.5x。
+     效果：头稳定在容器上沿（navbar 可视条带内），身体向下延伸；
+     navbar 本身没有 overflow: hidden，因此溢出的下半身自然贴到 navbar
+     下方的空白区，整体呈现"头像+半身"的常规形象入口观感。 */
+  object-position: center top;
   border: 0;
   box-shadow: none;
   background: transparent;
-  /* 用户反馈："终点的图也要放大到 1.5 倍"——和飞行体（r1-fly 全程 scale 1.5）
-     保持一致，让落到 navbar 后的 APNG 末帧也以 1.5x 呈现。用 transform 放大
-     而非改容器 width/height，避免撑开 navbar 相邻元素（用户名/右侧图标）。
-     transform-origin 默认中心 + object-position: center bottom 配合，角色
-     溢出的部分会向四周均匀扩，头部依然露在可视区域内。 */
   transform: scale(1.5);
-  transform-origin: center center;
+  transform-origin: center top;
 }
 .navbar .me-info {
   margin-left: 10px; line-height: 1;
