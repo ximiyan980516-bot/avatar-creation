@@ -330,20 +330,29 @@
      3) .img-open 附加 brightness/saturate 提亮，让"爆发"一瞬的色彩更鲜亮。
    注意：keyframes 里必须包含完整的 transform，否则浏览器会把缺失值视为
    initial（translateY=0, scale=1），造成位置跳变。 */
+/* 关键尺寸账：.body 只有 180×220，但 .img-open 自己 scale(2.28) 把人物
+   渲染到 ~410×500，远超出 .body 容器；如果 halo 只围着 .body 本体扩散
+   （之前 inset:-10%）就会被角色整体盖住，看不见。
+   所以这里把 halo 扩到 inset:-90% —— 比放大后的人物还要大一圈，
+   视觉上才是"从角色身后 / 整个身位爆出的一圈光"。
+   同时去掉 mix-blend-mode:screen：在白色半屏背景上 screen 混合几乎没
+   亮度差，反而让 halo 变透明；直接用半透明实色 radial 更醒目。
+   z-index 提到 5 盖过 .img-open（img 层的 z-index 我们下面故意不再设
+   高），让光圈呈现"从人物身上炸出来"的感觉。 */
 .body.burst::after {
   content: '';
-  position: absolute; inset: -10%;
+  position: absolute; inset: -90%;
   border-radius: 50%;
   background: radial-gradient(circle,
-              rgba(255, 220, 235, .95) 0%,
-              rgba(255, 180, 210, .55) 35%,
-              rgba(255, 180, 210, 0)   70%);
+              rgba(255, 190, 220, .85) 0%,
+              rgba(255, 150, 200, .55) 25%,
+              rgba(255, 130, 190, .25) 50%,
+              rgba(255, 130, 190, 0)   75%);
   pointer-events: none;
   opacity: 0;
   transform: scale(.4);
   animation: body-burst-halo .75s cubic-bezier(.2,.8,.2,1) forwards;
-  z-index: 3;
-  mix-blend-mode: screen;
+  z-index: 5;
 }
 @keyframes body-burst-halo {
   0%   { opacity: 0;   transform: scale(.4); }
@@ -352,10 +361,11 @@
   100% { opacity: 0;   transform: scale(1.6); }
 }
 
+/* 角色本身：只保留 scale 回弹，不再做亮度/饱和度拉升 ——
+   用户反馈"去掉短暂亮度/饱和度拉升"，同时解决之前 halo 被盖导致看不到的
+   问题（halo 现在走更高 z-index + 更大范围，不再依赖与 img 的叠色）。 */
 .body.burst .img-open {
   animation: img-burst-pulse .7s cubic-bezier(.25,1.4,.35,1) forwards;
-  filter: brightness(1.08) saturate(1.15);
-  z-index: 4; /* 盖住 halo，让人物在前景爆发 */
 }
 @keyframes img-burst-pulse {
   0%   { transform: translateY(70px) scale(2.28); }
