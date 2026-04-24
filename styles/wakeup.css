@@ -316,6 +316,54 @@
   100% { opacity: 0; transform: scale(1.4); }
 }
 
+/* ======= 动图定格前的"爆发感"（.body.burst，持续 .7s）=======
+   触发时机：JS 里在 APNG 开始播放后 ≈4.1s 加 .burst（动图 5.1s 总长，
+   接近定格那一瞬），.7s 后移除。
+   视觉层：
+     1) .body::after —— 一层径向高光从 body 中心向外迸发（opacity+scale）
+        比 .flash 的入场闪光更亮、更快，强调"能量定格"。
+     2) .img-open  —— 在当前 translateY(70px) scale(2.28) 基础上叠一组
+        pulse：先向上略缩 (scale .96) 再过冲到 scale 1.06，再回落；
+        用 transform 的【相对偏移】写在另一个自定义属性里有点绕，所以这里
+        直接把完整 transform 写进 keyframe，每一帧都带上 translateY(70px)
+        保证位置不跳。
+     3) .img-open 附加 brightness/saturate 提亮，让"爆发"一瞬的色彩更鲜亮。
+   注意：keyframes 里必须包含完整的 transform，否则浏览器会把缺失值视为
+   initial（translateY=0, scale=1），造成位置跳变。 */
+.body.burst::after {
+  content: '';
+  position: absolute; inset: -10%;
+  border-radius: 50%;
+  background: radial-gradient(circle,
+              rgba(255, 220, 235, .95) 0%,
+              rgba(255, 180, 210, .55) 35%,
+              rgba(255, 180, 210, 0)   70%);
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(.4);
+  animation: body-burst-halo .75s cubic-bezier(.2,.8,.2,1) forwards;
+  z-index: 3;
+  mix-blend-mode: screen;
+}
+@keyframes body-burst-halo {
+  0%   { opacity: 0;   transform: scale(.4); }
+  25%  { opacity: 1;   transform: scale(1.15); }
+  55%  { opacity: .85; transform: scale(1.35); }
+  100% { opacity: 0;   transform: scale(1.6); }
+}
+
+.body.burst .img-open {
+  animation: img-burst-pulse .7s cubic-bezier(.25,1.4,.35,1) forwards;
+  filter: brightness(1.08) saturate(1.15);
+  z-index: 4; /* 盖住 halo，让人物在前景爆发 */
+}
+@keyframes img-burst-pulse {
+  0%   { transform: translateY(70px) scale(2.28); }
+  25%  { transform: translateY(68px) scale(2.20); }  /* 轻微蓄力下压 */
+  60%  { transform: translateY(64px) scale(2.42); }  /* 过冲放大 */
+  100% { transform: translateY(70px) scale(2.28); }  /* 回到原位定格 */
+}
+
 /* 角色台词气泡：紧贴人物右侧（人物在 stage 居中，右边缘 ≈ 中心+90px），
    气泡左尖几乎挨着人物头肩位置，更像"从他嘴边冒出来"
    位置上移到偏头顶位置，形成"从头顶轻轻飘出"的对话感

@@ -453,9 +453,23 @@ function onWakeSuccess() {
 }
 
 function doAwakeReveal() {
-  // 闪光 + 睁眼
+  // ======= 唤醒总时序（以 APNG 第一帧开始为 t=0）=======
+  //   APNG 总长 ≈ 5.1s / 80 帧，loop=1 播完定格在最后一帧（acTL 已改）。
+  //   关键节点（用户要求"动图快结束再出字、快结束时爆发、整体延长"）：
+  //     t=0.00s  .flashing 开始（白光 0.55s）
+  //     t=0.38s  .body.awake → img-open 显形并开始播 APNG
+  //     t=4.10s  .body.burst → 爆发：光晕闪烁 + 角色 scale 回弹 0.7s
+  //     t=4.70s  .sheet.reveal（延迟触发）→ title 行带模糊+上浮飘入
+  //              title 的 delay 在 CSS 里保持 .75s，相当于 t≈5.45s
+  //              正好落在 APNG 定格后 ≈ 0.3s，节奏对齐"字跟着定格出"
+  //     t=5.60s  .sheet.awoken → 底部切换为保存按钮（比以前更晚，
+  //              让用户先看完整段动画再决定是否保存）
+  // ====================================================
+
+  // t=0：闪光铺底
   body.classList.add('flashing');
   setTimeout(() => {
+    // t≈0.38s：切到 awake，APNG 起播
     body.classList.add('awake');
     body.classList.remove('flashing');
     // APNG 只会在 src 首次加载时从第 0 帧播放；这里用时间戳 query
@@ -483,12 +497,27 @@ function doAwakeReveal() {
   // 用 is-hidden 彻底隐藏 subtitle，避免 min-height:16px + margin-top:4px
   // 空占 20px 留白。后续点"开启 QQ 秀"/"再看看"写入新文案时会移除这个类。
   sheetSubtitle.classList.add('is-hidden');
-  replayReveal();
 
-  // 显示保存按钮（替换掉底部的唤醒控件）
+  // t≈4.1s：动图快结束时的"爆发感" —— .body 加 .burst 类触发 CSS 关键帧
+  // （光圈闪烁 + 轻微缩放回弹），与 APNG 末段定格前的情绪高峰叠合。
+  // 0.8s 后把类撤掉，避免下次唤醒时没变化不触发。
+  setTimeout(() => {
+    body.classList.add('burst');
+    setTimeout(() => body.classList.remove('burst'), 800);
+  }, 4100);
+
+  // t≈4.7s：APNG 接近定格时才让文字飘入（title 那行 CSS delay 0.75s
+  // 会把它再往后推 → 真正出现时间 ≈ 5.45s，刚好在定格后 0.3s，节奏
+  // 对得上"形象先定格，字再随之浮出"的观感）。
+  setTimeout(() => {
+    replayReveal();
+  }, 4700);
+
+  // t≈5.6s：动画完全落地后再把底部切到保存按钮，给用户一个明显的
+  // "动画结束、可以操作了"信号，避免在爆发/出字过程里误触。
   setTimeout(() => {
     sheet.classList.add('awoken');
-  }, 500);
+  }, 5600);
 }
 
 // ======= 保存按钮 → 开始归位 =======
@@ -583,7 +612,7 @@ function onFlyEnd() {
 function resetToSleeping({ closeAfter = true } = {}) {
   state.awake = false;
   state.pressing = false;
-  body.classList.remove('awake', 'flashing');
+  body.classList.remove('awake', 'flashing', 'burst');
   stageArea.classList.remove('awake');
   sheet.classList.remove('counting', 'pressing', 'awoken');
   // 清除唤醒成功屏临时隐藏副标题的标记，让 refreshHeadline 写入的
