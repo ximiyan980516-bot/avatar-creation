@@ -776,21 +776,40 @@ async function playSlogan() {
       speechPlayBtn.classList.remove('loading', 'playing');
       URL.revokeObjectURL(objectUrl);
       currentAudio = null;
-      alert('音频播放失败，请检查浏览器音频权限');
+      showSpeechToast('浏览器拦截了音频播放，先和页面交互一下再试', 'warn');
     });
     await audio.play();
   } catch (err) {
     speechPlayBtn.classList.remove('loading', 'playing');
     console.error('[TTS]', err);
-    alert(
-      '语音合成失败 🥲\n\n' +
-      '请先启动本地 TTS 服务：\n' +
-      '  cd ' + (location.pathname.includes('avatar') ? '"avatar creation"' : '项目目录') + '\n' +
-      '  pip install edge-tts\n' +
-      '  python tts_server.py\n\n' +
-      '服务会监听 http://localhost:8766/tts'
-    );
+    // 区分两种常见失败
+    const isHttps = location.protocol === 'https:';
+    if (isHttps) {
+      showSpeechToast('https 页面无法访问 http://localhost，请改用 http 访问或把页面部署到同域 /tts', 'error');
+    } else {
+      showSpeechToast(
+        '本地 TTS 服务未启动，请先运行：python3 tts_server.py',
+        'error',
+        6000
+      );
+    }
   }
+}
+
+// 简易 toast：挂在气泡下方，不打断操作
+function showSpeechToast(msg, level = 'info', ttl = 4200) {
+  let toast = document.getElementById('speechToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'speechToast';
+    toast.className = 'speech-toast';
+    speechWrap.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.dataset.level = level;
+  toast.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => toast.classList.remove('show'), ttl);
 }
 speechPlayBtn.addEventListener('click', (e) => {
   e.stopPropagation();
