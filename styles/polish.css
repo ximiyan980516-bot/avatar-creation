@@ -176,24 +176,9 @@
     inset 0 1px 0 rgba(255, 255, 255, .9);
 }
 
-/* 5.2 sheet 顶部加一个 18px 的"抓手"小横条（drag handle）—— 移动端的视觉惯例，
-   告诉用户"这是一个可下拉的半屏"。不参与交互，纯视觉。 */
-.sheet::before {
-  content: "";
-  position: absolute;
-  left: 50%; top: 8px;
-  transform: translateX(-50%);
-  width: 36px; height: 4px;
-  border-radius: 2px;
-  background: rgba(26, 37, 64, .14);
-  z-index: 11;
-  pointer-events: none;
-}
+/* 5.2 （已移除）原 sheet 顶部 drag handle 小横条 —— 用户反馈视觉冗余 */
 
-/* 5.3 关闭按钮位置避开 drag handle */
-.sheet .sheet-close {
-  top: 16px;
-}
+/* 5.3 （已移除）关闭按钮位置同步复原，保留 sheet 自身 .sheet-close 默认定位 */
 
 /* 5.4 控制面板的 .console 标题行：序号圈与文字 baseline 对齐微调
    原代码 num 是 line-height:20 + h2 是 15px 默认行高，会有 1px 错位 */
