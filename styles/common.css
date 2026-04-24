@@ -179,11 +179,15 @@ html, body {
 }
 
 /* 归位后：头像变成圆角方形的「全身形象」展示框
-   注意：不要加 box-shadow —— 投影会让导航栏整体显脏，且与"她回到了你身边"的轻盈感冲突 */
+   注意：不要加 box-shadow —— 投影会让导航栏整体显脏，且与"她回到了你身边"的轻盈感冲突
+   用户反馈："左上角归位后还是有一层蓝色渐变"——原先给容器做了一层
+   linear-gradient(#F4F7FF → #E3ECFF) 的浅冷蓝底色，本意是给透明 PNG
+   一个柔和的托底，但在 navbar 上就是一块可见的蓝色渐变方块。
+   改成 background: transparent，角色形象直接贴在 navbar 上，没有额外色块。 */
 .navbar .me-avatar.returned {
   width: 44px; height: 54px;
   border-radius: 12px;
-  background: linear-gradient(180deg, #F4F7FF 0%, #E3ECFF 100%);
+  background: transparent;
   box-shadow: none;
 }
 .navbar .me-avatar.returned > img {
