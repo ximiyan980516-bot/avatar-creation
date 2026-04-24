@@ -71,11 +71,9 @@
   opacity: 0;
   transform: translateY(8px);
 }
-/* 两行节奏：title 先出（.75s）→ subtitle 紧随（1.45s）。
-   greeting 行虽隐藏，仍保留 keyframes 以兼容旧逻辑。 */
 .sheet.reveal .sheet-head .greeting { animation: line-in .55s cubic-bezier(.2,.9,.3,1) .75s forwards; }
-.sheet.reveal .sheet-head .title    { animation: line-in .55s cubic-bezier(.2,.9,.3,1) .75s forwards; }
-.sheet.reveal .sheet-head .subtitle { animation: line-in .55s cubic-bezier(.2,.9,.3,1) 1.45s forwards; }
+.sheet.reveal .sheet-head .title    { animation: line-in .55s cubic-bezier(.2,.9,.3,1) 1.55s forwards; }
+.sheet.reveal .sheet-head .subtitle { animation: line-in .55s cubic-bezier(.2,.9,.3,1) 2.35s forwards; }
 @keyframes line-in {
   0%   { opacity: 0; transform: translateY(12px); filter: blur(4px); }
   60%  { filter: blur(0); }
@@ -83,10 +81,7 @@
 }
 
 /* 最大一级：打招呼 —— 对话感的核心 */
-/* 简化为两行版式：隐藏问候行，只保留 title + subtitle 两行核心信息
-   （DOM 仍保留，便于 main.js 继续写入文案，避免大面积改逻辑） */
 .sheet .sheet-head .greeting {
-  display: none;
   font-size: 22px; font-weight: 700;
   color: #1a2540;
   letter-spacing: .3px;
