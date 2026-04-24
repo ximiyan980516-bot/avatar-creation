@@ -141,8 +141,10 @@
   transition: transform var(--dur-mid) var(--ease-in);
 }
 .sheet.show {
-  /* 入场曲线：spring 过冲一点点，体现"被掀起来"的物理感 */
-  transition: transform var(--dur-mid) var(--spring);
+  /* 入场曲线：标准 ease-out，平滑停在 0 位，不过冲。
+     原先用 --spring 会先冲过最终位置再回弹，半屏看起来"往上跳一下"，
+     用户反馈很突兀，故改回不过冲的缓出曲线。 */
+  transition: transform var(--dur-mid) var(--ease-out);
 }
 
 
