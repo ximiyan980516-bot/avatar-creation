@@ -193,20 +193,26 @@ html, body {
 .navbar .me-avatar.returned > img {
   border-radius: 12px;
   object-fit: contain;
-  /* 用户反馈："归位的形象偏下了"。
-     原先用 object-position: center bottom + transform-origin: center center，
-     导致全身像先贴容器底部，再以中心为轴放大 1.5x——重心本来就偏下，放大后
-     头更被压到容器下半，视觉上像"角色沉下去了"。
-     改成：图先顶对齐容器（center top），再以顶为锚点向下放大 1.5x。
-     效果：头稳定在容器上沿（navbar 可视条带内），身体向下延伸；
-     navbar 本身没有 overflow: hidden，因此溢出的下半身自然贴到 navbar
-     下方的空白区，整体呈现"头像+半身"的常规形象入口观感。 */
+  /* 用户反馈链条：
+     1) "终点的图也要放大到 1.5 倍" → 曾给这里加 transform: scale(1.5)
+     2) "归位的形象偏下了 / 归位时静态头像也会变大"
+        这两个副作用都来自 scale(1.5)：
+        - 偏下：PNG 画布顶部本来就有透明留白，contain 后图像再被 1.5x
+          放大，头以锚点为轴外扩，视觉重心自然压到下半；无论 top/center/
+          bottom 哪种锚点都会出现"某一端偏空"。
+        - 静态头像变大：triggerReturn() 在飞行开始前就给 meAvatar 加
+          .returned（为了让飞行终点拿到正确的 44×54 几何），此时 navbar
+          里的原静态圆头像（pink-portrait.png）也立刻套上这个 scale(1.5)
+          规则——用户看到的就是"飞行还没开始，左上角头像先膨胀了一下"。
+     本轮决定：撤掉落位后的 scale，归位头像就按 44×54 槽位正常 contain
+     显示，配合 object-position: center top 让头顶贴容器顶——既没有"偏下"，
+     也不会在飞行前就把静态图放大。飞行体的 1.5x 放大仅保留"起飞瞬间"
+     的感觉（详见 wakeup.css 的 r1-fly），落位时 scale 回 1，与 navbar
+     这里的 1.0 对齐，无跳变。 */
   object-position: center top;
   border: 0;
   box-shadow: none;
   background: transparent;
-  transform: scale(1.5);
-  transform-origin: center top;
 }
 .navbar .me-info {
   margin-left: 10px; line-height: 1;
