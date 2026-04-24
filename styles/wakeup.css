@@ -120,14 +120,19 @@
 
 /* 形象舞台
    - flex: 0 0 auto：只占自身高度，不再吞噬中段空间，sheet-head 才能往上贴。
-   - padding-top: 56px：给 .img-open 的 scale(1.35) 留出向上生长的余量
-     （之前是 32px，唤醒后形象头部会被 sheet 顶部裁掉一点点）。
+   - margin-top: 44px：让"形象+文案"这一整团整体下移，避免它们贴着 sheet 顶部，
+     视觉上与下方按钮区更平衡（之前 padding-top: 56px 也会下移，但那是
+     stage-area 自身的内边距 → 光柱 / ripple 等绝对定位元素的高度也会被撑高，
+     所以改用 margin-top 把"位置"下推、padding-top 只保留少量给 .img-open 的
+     scale 缓冲）。
+   - padding-top: 24px：给 .img-open 的 scale(1.18) 顶部留出生长余量。
    - padding-bottom: 8px：避免脚底光斑/涟漪与文案首行黏在一起。 */
 .sheet .stage-area {
   flex: 0 0 auto; position: relative;
   display: flex; align-items: flex-start; justify-content: center;
   overflow: visible;
-  padding-top: 56px;
+  margin-top: 44px;
+  padding-top: 24px;
   padding-bottom: 8px;
 }
 
