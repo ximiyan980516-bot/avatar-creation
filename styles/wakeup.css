@@ -330,34 +330,60 @@
      3) .img-open 附加 brightness/saturate 提亮，让"爆发"一瞬的色彩更鲜亮。
    注意：keyframes 里必须包含完整的 transform，否则浏览器会把缺失值视为
    initial（translateY=0, scale=1），造成位置跳变。 */
-/* 关键尺寸账：.body 只有 180×220，但 .img-open 自己 scale(2.28) 把人物
-   渲染到 ~410×500，远超出 .body 容器；如果 halo 只围着 .body 本体扩散
-   （之前 inset:-10%）就会被角色整体盖住，看不见。
-   所以这里把 halo 扩到 inset:-90% —— 比放大后的人物还要大一圈，
-   视觉上才是"从角色身后 / 整个身位爆出的一圈光"。
-   同时去掉 mix-blend-mode:screen：在白色半屏背景上 screen 混合几乎没
-   亮度差，反而让 halo 变透明；直接用半透明实色 radial 更醒目。
-   z-index 提到 5 盖过 .img-open（img 层的 z-index 我们下面故意不再设
-   高），让光圈呈现"从人物身上炸出来"的感觉。 */
+/* ─── 爆发光晕：改用"水波纹双圈 + 柔和中心晕"组合 ───
+   参考入口态的呼吸光圈（.halo-ring：1.5px 描边 scale(.9→1.35) 淡出）
+   和 effects.css 里的 fx2-ripple（描边圆环 scale(1→2) opacity .9→0）。
+   之前用实心径向渐变虽然亮，但缺少"一圈一圈往外推"的水波质感，
+   和入口风格不统一。现在叠 3 层：
+     ::before  —— 柔和粉色中心晕（兜底气氛），很快淡出
+     ::after   —— 第一圈描边波纹：scale .45→1.6，opacity 近全→0
+     + 第二圈同参数但 delay 0.22s，形成追赶式的双层波
+   尺寸基准用 inset:-90%（.body 180×220 被 .img-open scale(2.28) 撑大到
+   ~410×500，所以波纹范围必须远超 .body 本体才"包得住人物"）。
+   z-index: 5 仍在 img 层之上，视觉是"从角色身位往外一圈圈炸开"。 */
+
+/* 第一圈描边波纹 */
 .body.burst::after {
   content: '';
   position: absolute; inset: -90%;
   border-radius: 50%;
-  background: radial-gradient(circle,
-              rgba(255, 190, 220, .85) 0%,
-              rgba(255, 150, 200, .55) 25%,
-              rgba(255, 130, 190, .25) 50%,
-              rgba(255, 130, 190, 0)   75%);
+  border: 2px solid rgba(255, 120, 180, .85);
+  box-shadow: 0 0 24px 4px rgba(255, 150, 200, .35);
   pointer-events: none;
   opacity: 0;
-  transform: scale(.4);
-  animation: body-burst-halo .75s cubic-bezier(.2,.8,.2,1) forwards;
+  transform: scale(.45);
+  animation: body-burst-ripple 1s cubic-bezier(.2,.7,.25,1) forwards;
   z-index: 5;
 }
-@keyframes body-burst-halo {
-  0%   { opacity: 0;   transform: scale(.4); }
-  25%  { opacity: 1;   transform: scale(1.15); }
-  55%  { opacity: .85; transform: scale(1.35); }
+
+/* 中心柔光晕 + 第二圈描边波纹都靠 ::before 承载？
+   一个伪元素只能放一种图形，所以把中心晕放 ::before，
+   第二圈描边我们用一个真实子节点（.burst-ripple）加在 .body 里。
+   但为了不改 HTML，用 background 双图层：中心径向 + 更外的描边做不了描边。
+   折中方案：::before = 中心晕，另外再靠 .img-open 层上的一个 outline 也不行。
+   最终方案：::before 同时画"描边圆 + 中心淡淡晕"，用 box-shadow 多层模拟，
+   然后 animation-delay 0.22s，和 ::after 形成双波追赶。 */
+.body.burst::before {
+  content: '';
+  position: absolute; inset: -90%;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 150, 200, .7);
+  /* 中心柔光：用内投影 + 外投影叠，像粉色水膜一样 */
+  background: radial-gradient(circle,
+              rgba(255, 200, 225, .55) 0%,
+              rgba(255, 180, 215, .25) 35%,
+              rgba(255, 180, 215, 0)   70%);
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(.45);
+  animation: body-burst-ripple 1.1s cubic-bezier(.2,.7,.25,1) .22s forwards;
+  z-index: 5;
+}
+
+@keyframes body-burst-ripple {
+  0%   { opacity: 0;   transform: scale(.45); }
+  15%  { opacity: 1;   transform: scale(.75); }
+  55%  { opacity: .55; transform: scale(1.25); }
   100% { opacity: 0;   transform: scale(1.6); }
 }
 

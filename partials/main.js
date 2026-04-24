@@ -455,15 +455,16 @@ function onWakeSuccess() {
 function doAwakeReveal() {
   // ======= 唤醒总时序（以 APNG 第一帧开始为 t=0）=======
   //   APNG 总长 ≈ 5.1s / 80 帧，loop=1 播完定格在最后一帧（acTL 已改）。
-  //   关键节点（用户要求"动图快结束再出字、快结束时爆发、整体延长"）：
+  //   关键节点（用户反馈"文字时机再前 ~2s"，整体把爆发 + 文字提前 2s）：
   //     t=0.00s  .flashing 开始（白光 0.55s）
   //     t=0.38s  .body.awake → img-open 显形并开始播 APNG
-  //     t=4.10s  .body.burst → 爆发：光晕闪烁 + 角色 scale 回弹 0.7s
-  //     t=4.70s  .sheet.reveal（延迟触发）→ title 行带模糊+上浮飘入
-  //              title 的 delay 在 CSS 里保持 .75s，相当于 t≈5.45s
-  //              正好落在 APNG 定格后 ≈ 0.3s，节奏对齐"字跟着定格出"
-  //     t=5.60s  .sheet.awoken → 底部切换为保存按钮（比以前更晚，
-  //              让用户先看完整段动画再决定是否保存）
+  //     t=2.10s  .body.burst → 水波纹双圈从角色身位往外扩散（~1.3s）
+  //                           + 角色 scale 回弹（0.7s）
+  //     t=2.70s  .sheet.reveal（延迟触发）→ title 行带模糊+上浮飘入
+  //              title 的 CSS delay 0.75s → 真正出现 ≈ t=3.45s，
+  //              文字浮出时 APNG 还在播，用户能同时看到角色动 + 字出
+  //     t=5.60s  .sheet.awoken → 底部切换为保存按钮（仍保持原节奏，
+  //              让用户看完整段动画再做保存决定）
   // ====================================================
 
   // t=0：闪光铺底 + 立刻隐藏底部唤醒按钮
@@ -516,20 +517,22 @@ function doAwakeReveal() {
   // 空占 20px 留白。后续点"开启 QQ 秀"/"再看看"写入新文案时会移除这个类。
   sheetSubtitle.classList.add('is-hidden');
 
-  // t≈4.1s：动图快结束时的"爆发感" —— .body 加 .burst 类触发 CSS 关键帧
-  // （光圈闪烁 + 轻微缩放回弹），与 APNG 末段定格前的情绪高峰叠合。
-  // 0.8s 后把类撤掉，避免下次唤醒时没变化不触发。
+  // t≈2.1s：APNG 播到一半左右时触发水波纹双圈爆发 —— 粉色描边一圈追一圈
+  // 往外扩散（参考入口的 halo-ring / effects.css 里的 fx2-ripple 风格），
+  // 与角色的 scale 回弹叠加，像"从身位炸开一圈圈光"。保持 1.4s 后再撤类，
+  // 让 ::before 那一圈（delay 0.22s，1.1s 动画）也能完整走完。
   setTimeout(() => {
     body.classList.add('burst');
-    setTimeout(() => body.classList.remove('burst'), 800);
-  }, 4100);
+    setTimeout(() => body.classList.remove('burst'), 1400);
+  }, 2100);
 
-  // t≈4.7s：APNG 接近定格时才让文字飘入（title 那行 CSS delay 0.75s
-  // 会把它再往后推 → 真正出现时间 ≈ 5.45s，刚好在定格后 0.3s，节奏
-  // 对得上"形象先定格，字再随之浮出"的观感）。
+  // t≈2.7s：比之前提前约 2s 让文案飘入（title CSS delay 0.75s →
+  // 真正可见约 t=3.45s）。APNG 还在播，但用户此时能同时感知到
+  // "角色在动 + 文字浮出 + 水波纹还在外扩"，整体信息密度更紧凑，
+  // 不再等 APNG 完整播完才出字。
   setTimeout(() => {
     replayReveal();
-  }, 4700);
+  }, 2700);
 
   // t≈5.6s：动画完全落地后再把底部切到保存按钮，给用户一个明显的
   // "动画结束、可以操作了"信号，避免在爆发/出字过程里误触。
