@@ -199,6 +199,11 @@
   transform: translateY(63px) scale(2.052);
   transform-origin: 50% 100%;
   transition: opacity .4s ease;
+  /* z-index: 2 —— 把角色图层显式抬到爆发伪元素（z-index:0）之上，
+     用户反馈"光晕放在动图后，不要挡住动图"。.body 自身 position:relative
+     建立 stacking context，这里设正值即可保证 .img-open 永远压在
+     .body.burst::before / ::after 的水波纹上方。 */
+  z-index: 2;
 }
 
 .body.awake .img-closed { opacity: 0; }
@@ -338,7 +343,9 @@
    用蓝色是延续入口的视觉语言（用户反馈"光晕还是用蓝色"）。
    尺寸基准 inset:-90%（.body 180×220 被 .img-open scale(2.052) 撑大到
    ~370×450，波纹范围必须远超 .body 本体才"包得住人物"）。
-   z-index: 5 仍在 img 层之上，视觉是"从角色身位往外一圈圈炸开"。 */
+   z-index: 0（配合 .img-open 的 z-index:2）—— 用户反馈"光晕放在动图后，
+   不要挡住动图"。改为角色后方图层，视觉是"从角色身后往外扩的一圈圈光"，
+   而不是盖在脸上。 */
 
 /* 第一圈描边波纹 */
 .body.burst::after {
@@ -351,7 +358,7 @@
   opacity: 0;
   transform: scale(.45);
   animation: body-burst-ripple 1s cubic-bezier(.2,.7,.25,1) forwards;
-  z-index: 5;
+  z-index: 0;
 }
 
 /* 第二圈描边 + 柔和蓝色中心晕（延后 0.22s 追赶） */
@@ -368,7 +375,7 @@
   opacity: 0;
   transform: scale(.45);
   animation: body-burst-ripple 1.1s cubic-bezier(.2,.7,.25,1) .22s forwards;
-  z-index: 5;
+  z-index: 0;
 }
 
 @keyframes body-burst-ripple {
