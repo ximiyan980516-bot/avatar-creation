@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=1280, initial-scale=1" />
+  <title>QQ · 二次元头像唤醒原型</title>
+  <link rel="stylesheet" href="styles/common.css" />
+  <link rel="stylesheet" href="styles/effects.css" />
+  <link rel="stylesheet" href="styles/wakeup.css" />
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ========== 左侧：手机预览 ========== -->
+  <div class="stage">
+    <div class="phone" id="phone">
+
+      <!-- 状态栏 -->
+      <div class="statusbar">
+        <span>9:41</span>
+        <div class="icons">
+          <svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor"><path d="M1 11h2V8H1zM5 11h2V6H5zM9 11h2V4H9zM13 11h2V2h-2z"/></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M8 4c-1.5 0-3 .5-4 1.5"/><path d="M8 1c-3 0-5.5 1-7 2.5"/><path d="M8 7c-1 0-2 .5-2.5 1"/><circle cx="8" cy="10" r="1" fill="currentColor"/></svg>
+          <svg width="26" height="12" viewBox="0 0 26 12" fill="none" stroke="currentColor"><rect x="1" y="2" width="20" height="8" rx="2"/><rect x="3" y="4" width="16" height="4" rx="1" fill="currentColor"/><rect x="22" y="4.5" width="2" height="3" rx="1" fill="currentColor"/></svg>
+        </div>
+      </div>
+
+      <!-- 顶部导航：我的头像（入口） -->
+      <div class="navbar">
+        <div class="me-avatar" id="meAvatar" data-effect="1">
+          <img src="assets/avatar/body-closed.png" alt="我的头像" id="meAvatarImg" />
+          <!-- 各类动效叠加层 -->
+          <div class="fx-layer"></div>
+          <div class="fx-outer">
+            <!-- 声波线（fx4） -->
+            <i></i><i></i><i></i><i></i><i></i>
+            <!-- 星粒（fx5） -->
+            <span></span><span></span><span></span>
+            <!-- ZZZ（fx7） -->
+            <em class="z">Z</em><em class="z">Z</em><em class="z">Z</em>
+            <!-- 爱心（fx8） -->
+            <b class="h"></b><b class="h"></b><b class="h"></b>
+            <!-- 挂件（fx9） -->
+            <div class="pill">想见你</div>
+          </div>
+        </div>
+        <div class="me-info">
+          <div class="name">飞翔的企鹅</div>
+          <div class="status"><span class="status-dot"></span>在线</div>
+        </div>
+        <div class="right-icons">
+          <div class="ic">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          </div>
+          <div class="ic">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- 列表区 -->
+      <div class="list-area" id="listArea"></div>
+
+      <!-- 底部 Tabbar -->
+      <div class="tabbar">
+        <div class="tab active">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 4h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-7l-4 4v-4H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg></div>
+          <span>消息</span>
+          <span class="badge">99+</span>
+        </div>
+        <div class="tab">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg></div>
+          <span>联系人</span>
+        </div>
+        <div class="tab">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+          <span>动态</span>
+        </div>
+      </div>
+
+      <!-- 半屏唤醒 -->
+      <div class="sheet-mask" id="sheetMask"></div>
+      <div class="sheet" id="sheet" data-wake="1" data-trigger="press">
+        <!-- 右上角关闭按钮 -->
+        <button class="sheet-close" id="sheetCloseBtn" aria-label="关闭">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+
+        <div class="stage-area" id="stageArea">
+          <!-- 5种唤醒效果的舞台道具 -->
+          <div class="lightbeam">
+            <div class="beam-spot"></div>
+            <div class="beam-soft"></div>
+            <div class="beam-core"></div>
+            <div class="beam-dust"><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="ripple-floor"></div>
+          <div class="particles">
+            <span></span><span></span><span></span><span></span>
+            <span></span><span></span><span></span><span></span>
+          </div>
+          <div class="countdown">
+            <span>3</span><span>2</span><span>1</span>
+          </div>
+          <!-- 全身形象 -->
+          <div class="body" id="body">
+            <!-- 圆形头像周围装饰（仅闭眼态显示）——呼应第一版入口动效 -->
+            <div class="halo-ring"></div>
+            <div class="halo-ring halo-ring-2"></div>
+            <div class="halo-orbit">
+              <span></span><span></span><span></span>
+            </div>
+            <img class="img-closed" src="assets/avatar/body-closed.png" alt="" />
+            <img class="img-open"   src="assets/avatar/body-open.png"   alt="" />
+            <div class="flash"></div>
+          </div>
+          <!-- 角色台词 -->
+          <div class="speech" id="speech">Hi，初次见面~</div>
+        </div>
+
+        <!-- 引导文案：放在头像下方，一句一句出现 -->
+        <div class="sheet-head" id="sheetHead">
+          <div class="greeting" id="sheetGreeting">Hi，飞翔的企鹅</div>
+          <div class="title" id="sheetTitle">唤醒 QQ 秀，让头像变成有灵魂的形象</div>
+          <div class="subtitle" id="sheetSubtitle">不只是一张静态图，而是一个会呼吸、会陪你的 QQ 秀</div>
+        </div>
+
+        <div class="sheet-foot" id="sheetFoot">
+          <!-- 5 种唤醒交互控件（根据 data-trigger 切换显示） -->
+          <div class="trigger trigger-press" data-t="press">
+            <div class="press-btn" id="pressBtn">
+              <div class="progress" id="pressProgress"></div>
+              <span class="btn-text" id="pressBtnText">长按唤醒</span>
+            </div>
+            <div class="foot-tip">长按 1.2 秒，召唤你的专属形象</div>
+          </div>
+
+          <div class="trigger trigger-tap" data-t="tap">
+            <div class="tap-btn" id="tapBtn">
+              <div class="tap-dots">
+                <i></i><i></i><i></i>
+              </div>
+              <span class="btn-text" id="tapBtnText">点我 3 下，叫醒 QQ 秀</span>
+            </div>
+            <div class="foot-tip">轻点 3 次，就像敲敲那扇小窗</div>
+          </div>
+
+          <div class="trigger trigger-slide" data-t="slide">
+            <div class="slide-track" id="slideTrack">
+              <div class="slide-fill" id="slideFill"></div>
+              <div class="slide-hint">→ 滑动解锁，与 QQ 秀相遇</div>
+              <div class="slide-thumb" id="slideThumb">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              </div>
+            </div>
+            <div class="foot-tip">从左滑到右，像推开一扇窗</div>
+          </div>
+
+          <div class="trigger trigger-shake" data-t="shake">
+            <div class="shake-btn" id="shakeBtn">
+              <div class="shake-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 4h4l2 3h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h3l2-3z"/><circle cx="12" cy="13" r="3"/></svg>
+              </div>
+              <span class="btn-text" id="shakeBtnText">摇一摇手机，悄悄唤醒</span>
+            </div>
+            <div class="foot-tip">（原型演示：点一下模拟摇一摇）</div>
+          </div>
+
+          <div class="trigger trigger-voice" data-t="voice">
+            <div class="voice-btn" id="voiceBtn">
+              <div class="voice-mic">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+              </div>
+              <div class="voice-waves"><i></i><i></i><i></i><i></i><i></i></div>
+              <span class="btn-text" id="voiceBtnText">按住说「嘿，起床啦」</span>
+            </div>
+            <div class="foot-tip">按住麦克风，轻轻喊一声 QQ 秀的名字</div>
+          </div>
+
+          <!-- 保存按钮（唤醒成功后显示） -->
+          <div class="save-row" id="saveRow">
+            <button class="btn ghost" id="saveCancelBtn">再看看</button>
+            <button class="btn primary save-btn" id="saveBtn">
+              <span>开启 QQ 秀</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 飞行体（归位） -->
+      <div class="fly-body" id="flyBody" data-return="1">
+        <img src="assets/avatar/body-open.png" alt="" />
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========== 右侧：控制面板 ========== -->
+  <div class="controls">
+
+    <div class="console">
+      <h2><span class="num">1</span>消息列表入口动效</h2>
+      <p class="tip">引导用户注意并点击我的头像（10 种方案）。当前选中的方案会应用到上方手机左上角头像。</p>
+      <div class="opts cols-2" id="effectOpts"></div>
+    </div>
+
+    <div class="console">
+      <h2><span class="num">2</span>半屏唤醒效果</h2>
+      <p class="tip">点击头像 → 弹出半屏 → 通过下方交互方式唤醒 QQ 秀。5 种唤醒过程的视觉表达。</p>
+      <div class="opts cols-2" id="wakeOpts"></div>
+
+      <h2 style="margin-top:18px"><span class="num">2b</span>唤醒交互方式</h2>
+      <p class="tip">除了长按，还可以用点击/滑动/摇动/呼喊等方式召唤 QQ 秀。</p>
+      <div class="opts cols-2" id="triggerOpts"></div>
+
+      <div class="console-actions">
+        <button class="btn primary" id="openSheetBtn">打开半屏体验</button>
+      </div>
+    </div>
+
+    <div class="console">
+      <h2><span class="num">3</span>形象归位动效</h2>
+      <p class="tip">唤醒后，全身形象从半屏「飞回」消息列表顶部，缩小为入口头像。5 种归位轨迹。</p>
+      <div class="opts cols-2" id="returnOpts"></div>
+      <div class="console-actions">
+        <button class="btn" id="resetBtn">重置整个流程</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="partials/phone-shell.js"></script>
+<script src="partials/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# 编辑器 / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 日志 / 临时
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 依赖（本项目暂时是纯静态，预留）
+node_modules/
+dist/
+.cache/
+
+# CodeBuddy 本地数据（如果生成的话）
+.codebuddy/teams/

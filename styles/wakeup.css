@@ -1,0 +1,1061 @@
+/* ============================================================
+   半屏唤醒仪式 + 5种唤醒效果 + 5种归位效果
+   ============================================================ */
+
+/* ===== 半屏面板基础 ===== */
+.sheet-mask {
+  position: absolute; inset: 0; z-index: 50;
+  background: rgba(10, 18, 36, 0);
+  pointer-events: none;
+  transition: background .35s ease;
+}
+.sheet-mask.show {
+  background: rgba(10, 18, 36, .45);
+  pointer-events: auto;
+}
+
+.sheet {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  height: 66%;
+  background: linear-gradient(180deg, #F4F7FF 0%, #FFFFFF 100%);
+  border-radius: 24px 24px 0 0;
+  transform: translateY(100%);
+  transition: transform .42s cubic-bezier(.22,.9,.32,1);
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  z-index: 51;
+}
+.sheet.show { transform: translateY(0); }
+
+/* 右上角关闭按钮 */
+.sheet .sheet-close {
+  position: absolute;
+  top: 12px; right: 14px;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(26,37,64,.06);
+  color: rgba(26,37,64,.55);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: background .2s, color .2s, transform .15s;
+  padding: 0;
+}
+.sheet .sheet-close:hover {
+  background: rgba(26,37,64,.12);
+  color: #1a2540;
+}
+.sheet .sheet-close:active { transform: scale(.92); }
+
+/* 引导文案：与头像之间留出呼吸空间
+   注意：上一版用 margin-top: -24px 让文案贴着头像，
+   但唤醒后 .img-open 会 scale(1.35) 向上长，
+   头部正好砸进文案区 —— 所以这里把负 margin 去掉，
+   再补一点正向 margin-top，给形象顶部腾空间。 */
+.sheet .sheet-head {
+  text-align: center;
+  padding: 0 28px 6px;
+  margin-top: 8px;
+  margin-bottom: 14px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+}
+/* 逐句浮现：每行独立动画，交错延迟
+   叙事节奏：头像先放大入场（0.7s），随后文案 一句一句 飘出
+   —— 用更高权重选择器，确保在动画 delay 期间三行都是不可见的 */
+.sheet .sheet-head .greeting,
+.sheet .sheet-head .title,
+.sheet .sheet-head .subtitle {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.sheet.reveal .sheet-head .greeting { animation: line-in .55s cubic-bezier(.2,.9,.3,1) .75s forwards; }
+.sheet.reveal .sheet-head .title    { animation: line-in .55s cubic-bezier(.2,.9,.3,1) 1.55s forwards; }
+.sheet.reveal .sheet-head .subtitle { animation: line-in .55s cubic-bezier(.2,.9,.3,1) 2.35s forwards; }
+@keyframes line-in {
+  0%   { opacity: 0; transform: translateY(12px); filter: blur(4px); }
+  60%  { filter: blur(0); }
+  100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+/* 最大一级：打招呼 —— 对话感的核心 */
+.sheet .sheet-head .greeting {
+  font-size: 22px; font-weight: 700;
+  color: #1a2540;
+  letter-spacing: .3px;
+  line-height: 1.3;
+  margin-bottom: 6px;
+}
+.sheet .sheet-head .greeting .wave {
+  display: inline-block;
+  animation: wave-hi 1.8s ease-in-out infinite 1.5s;
+  transform-origin: 70% 70%;
+}
+@keyframes wave-hi {
+  0%, 60%, 100% { transform: rotate(0); }
+  10% { transform: rotate(14deg); }
+  20% { transform: rotate(-8deg); }
+  30% { transform: rotate(14deg); }
+  40% { transform: rotate(-4deg); }
+  50% { transform: rotate(10deg); }
+}
+/* 次级：主张（统一主色，不再做多色切分）
+   注意：不要在这里设 opacity，否则会覆盖 `.sheet-head > * { opacity:0 }`
+   导致动画 delay 期间 .title 提前可见（"第二行最先出现" 的 bug）。
+   最终亮度通过 color 的 alpha 来控制。 */
+.sheet .sheet-head .title {
+  font-size: 14px; font-weight: 500; color: rgba(26,37,64,.82);
+  letter-spacing: .2px;
+  line-height: 1.5;
+}
+/* 三级：辅助说明，弱化 */
+.sheet .sheet-head .subtitle {
+  font-size: 12px; color: rgba(26,37,64,.48);
+  margin-top: 4px;
+  min-height: 16px;
+  line-height: 1.5;
+}
+
+/* 形象舞台
+   - flex: 0 0 auto：只占自身高度，不再吞噬中段空间，sheet-head 才能往上贴。
+   - padding-top: 56px：给 .img-open 的 scale(1.35) 留出向上生长的余量
+     （之前是 32px，唤醒后形象头部会被 sheet 顶部裁掉一点点）。
+   - padding-bottom: 8px：避免脚底光斑/涟漪与文案首行黏在一起。 */
+.sheet .stage-area {
+  flex: 0 0 auto; position: relative;
+  display: flex; align-items: flex-start; justify-content: center;
+  overflow: visible;
+  padding-top: 56px;
+  padding-bottom: 8px;
+}
+
+/* 形象舞台容器：唤醒前只需放下圆形头像，唤醒后需要容纳全身像 */
+.body {
+  position: relative;
+  width: 180px;
+  height: 220px;
+  display: block;
+  /* 让圆形头像（绝对定位）可以垂直居中展示 */
+}
+.body img {
+  display: block;
+  filter: drop-shadow(0 16px 30px rgba(50,80,150,.18));
+}
+
+/* 闭眼状态：第一版的圆形头像（小尺寸、垂直居中）
+   素材统一用 body-closed.png（与 navbar 入口一致），
+   用 object-position 把头肩部裁进圆形里 */
+.body .img-closed {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 140px; height: 140px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center top;
+  background: linear-gradient(180deg, #F4F7FF 0%, #E3ECFF 100%);
+  border: 4px solid #fff;
+  box-shadow: 0 10px 28px rgba(50,80,150,.18);
+  transition: opacity .4s ease;
+}
+
+/* 睁眼状态：全身形象（占满 .body）
+   - transform-origin: 50% 100%（脚底锚点） → 形象往上长，不会跨到下方文案。
+   - scale 从 1.35 降到 1.18：之前太大，导致头顶/肩膀超出 .body 上沿被裁，
+     看起来像"被遮挡"。1.18 让全身完整显示在 stage-area 内。
+   - 配合 stage-area 的 padding-top: 56px，形象整体也比以前低一点，
+     与上方 sheet 顶部、下方文案都拉开距离。 */
+.body .img-open {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: contain;
+  opacity: 0;
+  transform: scale(1.18);
+  transform-origin: 50% 100%;
+  transition: opacity .4s ease;
+}
+
+.body.awake .img-closed { opacity: 0; }
+.body.awake .img-open   { opacity: 1; }
+
+/* 闭眼时的呼吸感（圆形头像轻轻缩放）
+   半屏打开时，先做一次"放大入场"动画，再过渡到持续呼吸
+   —— 用同一个 animation 列表：先 sheet-img-pop 一次性，后 body-breath 无限循环 */
+.body:not(.awake) .img-closed {
+  animation: body-breath 3s ease-in-out infinite;
+}
+/* 半屏弹出时：闭眼头像放大入场（一次性） + 之后接呼吸 */
+.sheet.show .body:not(.awake) .img-closed {
+  animation:
+    sheet-img-pop .7s cubic-bezier(.2,1.4,.3,1) both,
+    body-breath 3s ease-in-out infinite .7s;
+}
+@keyframes sheet-img-pop {
+  0%   { transform: translate(-50%, -50%) scale(.3);  opacity: 0; }
+  60%  { transform: translate(-50%, -50%) scale(1.08); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1);    opacity: 1; }
+}
+@keyframes body-breath {
+  0%,100% { transform: translate(-50%, -50%) scale(1); }
+  50%     { transform: translate(-50%, -50%) scale(1.03); }
+}
+
+/* ============================================================
+   闭眼态头像周围动效（呼应第一版入口动效）
+   三层叠加：呼吸光圈 × 双层声波 × 三色星粒环绕
+   ============================================================ */
+
+/* 呼吸光圈（主层）——柔和蓝色光环随头像一起呼吸 */
+.body .halo-ring {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 160px; height: 160px;
+  margin-left: -80px; margin-top: -80px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(0,153,255,.5);
+  opacity: 0;
+  animation: halo-breath 2.6s ease-in-out infinite;
+  pointer-events: none;
+}
+.body .halo-ring.halo-ring-2 {
+  animation-delay: 1.3s;
+  border-color: rgba(179,136,255,.45);
+}
+/* 半屏入场时：光圈延迟 0.5s 出现，配合头像放大节奏 */
+.sheet.show .body .halo-ring        { animation-delay: .5s; }
+.sheet.show .body .halo-ring-2      { animation-delay: 1.8s; }
+.sheet.show .body .halo-orbit span:nth-child(1) { animation-delay: .6s; }
+.sheet.show .body .halo-orbit span:nth-child(2) { animation-delay: -.8s; }
+.sheet.show .body .halo-orbit span:nth-child(3) { animation-delay: -2.2s; }
+@keyframes halo-breath {
+  0%   { transform: scale(.9); opacity: 0; }
+  30%  { opacity: .9; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+
+/* 三色星粒环绕 */
+.body .halo-orbit {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 180px; height: 180px;
+  margin-left: -90px; margin-top: -90px;
+  pointer-events: none;
+}
+.body .halo-orbit span {
+  position: absolute; left: 50%; top: 50%;
+  width: 7px; height: 7px; border-radius: 50%;
+  filter: blur(.3px);
+  animation: halo-orbit 4.2s linear infinite;
+}
+.body .halo-orbit span:nth-child(1) {
+  background: radial-gradient(circle, #FFD66B 0%, transparent 70%);
+  --r: 86px; animation-delay: 0s;
+}
+.body .halo-orbit span:nth-child(2) {
+  background: radial-gradient(circle, #FF99CC 0%, transparent 70%);
+  --r: 80px; animation-delay: -1.4s;
+}
+.body .halo-orbit span:nth-child(3) {
+  background: radial-gradient(circle, #99CCFF 0%, transparent 70%);
+  --r: 92px; animation-delay: -2.8s;
+}
+@keyframes halo-orbit {
+  0%   { transform: translate(-50%,-50%) rotate(0)    translate(var(--r)) rotate(0);    opacity: .25; }
+  50%  { opacity: 1; }
+  100% { transform: translate(-50%,-50%) rotate(360deg) translate(var(--r)) rotate(-360deg); opacity: .25; }
+}
+
+/* 顶部声波/铃铛线已移除（避免像"问号"扰乱视觉） */
+
+/* 唤醒后这些装饰淡出（避免与睁眼态冲突） */
+.body.awake .halo-ring,
+.body.awake .halo-orbit {
+  opacity: 0;
+  animation: none;
+  transition: opacity .4s ease;
+}
+
+/* 唤醒成功的闪光 */
+.body .flash {
+  position: absolute; inset: 0; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,.9) 0%, rgba(255,255,255,0) 60%);
+  opacity: 0; pointer-events: none;
+}
+.body.flashing .flash {
+  animation: body-flash .55s ease-out;
+}
+@keyframes body-flash {
+  0%   { opacity: 0; transform: scale(.6); }
+  35%  { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.4); }
+}
+
+/* 角色台词气泡：放在人物左侧，尖尖朝右指向人物
+   文案保持简短（如 "Hi，初次见面~"），不要遮挡形象 */
+.speech {
+  position: absolute;
+  left: 6%;
+  top: 32%;
+  transform: translateY(-6px) scale(.85);
+  transform-origin: left center;
+  background: #fff;
+  padding: 7px 12px; border-radius: 14px 14px 14px 4px;
+  box-shadow: 0 6px 16px rgba(20,30,60,.12);
+  font-size: 13px; color: #1a2540; font-weight: 500;
+  opacity: 0; transition: all .35s ease;
+  white-space: nowrap;
+  max-width: 38%;
+  pointer-events: none;
+}
+.speech::after {
+  content: ""; position: absolute;
+  right: -4px; top: 50%;
+  margin-top: -4px;
+  transform: rotate(45deg);
+  width: 8px; height: 8px; background: #fff;
+  box-shadow: 2px -2px 4px rgba(20,30,60,.04);
+}
+.body.awake ~ .speech,
+.stage-area.awake .speech {
+  opacity: 1; transform: translateY(0) scale(1);
+}
+
+/* 底部操作区
+   margin-top: auto —— 把按钮区推到 sheet 底部，
+   配合 stage-area 的 flex:0 0 auto，使头像/文案聚拢在上半区，
+   按钮稳定贴底。 */
+.sheet .sheet-foot {
+  padding: 8px 24px 24px;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  min-height: 96px;
+  position: relative;
+  margin-top: auto;
+}
+
+/* 5 种唤醒触发控件：默认全部隐藏，由 [data-trigger] 控制显示 */
+.trigger {
+  display: none;
+  width: 100%;
+  flex-direction: column; align-items: center; gap: 8px;
+}
+[data-trigger="press"] .trigger-press,
+[data-trigger="tap"]   .trigger-tap,
+[data-trigger="slide"] .trigger-slide,
+[data-trigger="shake"] .trigger-shake,
+[data-trigger="voice"] .trigger-voice {
+  display: flex;
+}
+
+/* 唤醒成功 → 隐藏所有 trigger，显示 save-row */
+.save-row {
+  display: none;
+  width: 100%;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+  animation: save-in .5s cubic-bezier(.2,1.3,.3,1);
+}
+.sheet.awoken .trigger { display: none !important; }
+.sheet.awoken .save-row { display: flex; }
+@keyframes save-in {
+  0%   { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.save-row .btn {
+  height: 44px; padding: 0 18px;
+  border-radius: 22px;
+  font-size: 14px; font-weight: 600;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.save-row .btn.ghost {
+  background: #fff; border: 1px solid rgba(20,30,60,.12); color: #1a2540;
+}
+.save-row .btn.primary.save-btn {
+  background: linear-gradient(135deg, #2B6CFF 0%, #6B8AFE 100%);
+  color: #fff; border: 0;
+  padding: 0 22px;
+  box-shadow: 0 8px 20px rgba(43,108,255,.35);
+}
+.save-btn .save-heart {
+  font-size: 18px; line-height: 1;
+}
+
+/* T1 · 长按按钮（仪式核心） */
+.press-btn {
+  position: relative;
+  width: 76%; height: 50px;
+  border-radius: 25px;
+  background: linear-gradient(135deg, #2B6CFF 0%, #6B8AFE 100%);
+  color: #fff; font-size: 15px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; user-select: none;
+  overflow: hidden;
+  box-shadow: 0 8px 20px rgba(43,108,255,.35);
+  transition: transform .15s;
+}
+.press-btn:active { transform: scale(.98); }
+.press-btn .btn-text { position: relative; z-index: 2; }
+.press-btn .progress {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: 0%;
+  background: linear-gradient(135deg, rgba(255,255,255,.28), rgba(255,255,255,.1));
+  transition: width .12s linear;
+}
+.press-btn.done {
+  background: linear-gradient(135deg, #07C160, #5BD68A);
+  box-shadow: 0 8px 20px rgba(7,193,96,.35);
+}
+
+/* T2 · 点 3 下按钮 */
+.tap-btn {
+  position: relative;
+  width: 76%; height: 50px;
+  border-radius: 25px;
+  background: linear-gradient(135deg, #FF99CC 0%, #FF6BCB 100%);
+  color: #fff; font-size: 15px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; user-select: none;
+  box-shadow: 0 8px 20px rgba(255,107,203,.35);
+  transition: transform .15s;
+  gap: 10px;
+}
+.tap-btn:active { transform: scale(.96); }
+.tap-btn.hit { animation: tap-hit .25s ease-out; }
+@keyframes tap-hit {
+  0%,100% { transform: scale(1); }
+  50%     { transform: scale(1.04); filter: brightness(1.2); }
+}
+.tap-btn .tap-dots {
+  display: flex; gap: 5px;
+}
+.tap-btn .tap-dots i {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: rgba(255,255,255,.35);
+  transition: background .2s, transform .2s;
+}
+.tap-btn[data-hits="1"] .tap-dots i:nth-child(1),
+.tap-btn[data-hits="2"] .tap-dots i:nth-child(-n+2),
+.tap-btn[data-hits="3"] .tap-dots i {
+  background: #fff;
+  transform: scale(1.3);
+  box-shadow: 0 0 8px rgba(255,255,255,.9);
+}
+
+/* T3 · 滑动解锁 */
+.slide-track {
+  position: relative;
+  width: 82%; height: 50px;
+  border-radius: 25px;
+  background: linear-gradient(135deg, #E3ECFF 0%, #F4F7FF 100%);
+  border: 1px solid rgba(43,108,255,.15);
+  overflow: hidden;
+  user-select: none;
+}
+.slide-track .slide-fill {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: 0;
+  background: linear-gradient(135deg, #2B6CFF 0%, #6B8AFE 100%);
+  transition: width .1s linear;
+  z-index: 1;
+}
+.slide-track .slide-hint {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; color: rgba(43,108,255,.55); font-weight: 500;
+  z-index: 2; pointer-events: none;
+  animation: slide-hint 2s ease-in-out infinite;
+}
+@keyframes slide-hint {
+  0%, 100% { opacity: .55; transform: translateX(0); }
+  50%      { opacity: .95; transform: translateX(4px); }
+}
+.slide-track .slide-thumb {
+  position: absolute; left: 4px; top: 4px;
+  width: 42px; height: 42px; border-radius: 50%;
+  background: #fff;
+  color: #2B6CFF;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 3px 10px rgba(43,108,255,.3);
+  cursor: grab; z-index: 3;
+  transition: none;
+}
+.slide-track .slide-thumb:active { cursor: grabbing; }
+.slide-track.returning .slide-thumb { transition: left .3s ease-out; }
+.slide-track.done .slide-hint { opacity: 0; }
+
+/* T4 · 摇一摇按钮（原型演示用点击替代） */
+.shake-btn {
+  position: relative;
+  width: 76%; height: 50px;
+  border-radius: 25px;
+  background: linear-gradient(135deg, #FFC76B 0%, #FF9F43 100%);
+  color: #fff; font-size: 15px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; user-select: none;
+  box-shadow: 0 8px 20px rgba(255,159,67,.35);
+  gap: 8px;
+  transition: transform .15s;
+}
+.shake-btn:active { transform: scale(.96); }
+.shake-btn .shake-icon {
+  animation: shake-icon 1.6s ease-in-out infinite;
+  display: inline-flex;
+}
+@keyframes shake-icon {
+  0%, 60%, 100% { transform: rotate(0); }
+  65% { transform: rotate(-12deg); }
+  72% { transform: rotate(10deg); }
+  79% { transform: rotate(-6deg); }
+  86% { transform: rotate(4deg); }
+}
+.shake-btn.shaking { animation: shake-whole .5s ease-in-out; }
+@keyframes shake-whole {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px) rotate(-2deg); }
+  40% { transform: translateX(6px) rotate(2deg); }
+  60% { transform: translateX(-4px) rotate(-1deg); }
+  80% { transform: translateX(4px) rotate(1deg); }
+}
+
+/* T5 · 按住说话 */
+.voice-btn {
+  position: relative;
+  width: 76%; height: 50px;
+  border-radius: 25px;
+  background: linear-gradient(135deg, #07C160 0%, #5BD68A 100%);
+  color: #fff; font-size: 14px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; user-select: none;
+  gap: 10px;
+  box-shadow: 0 8px 20px rgba(7,193,96,.35);
+  transition: transform .15s;
+}
+.voice-btn:active { transform: scale(.96); }
+.voice-btn .voice-mic { display: inline-flex; }
+.voice-btn .voice-waves {
+  display: inline-flex; align-items: center; gap: 3px;
+  opacity: 0; transition: opacity .2s;
+}
+.voice-btn.recording .voice-waves { opacity: 1; }
+.voice-btn.recording .btn-text::after {
+  content: " ···"; animation: voice-dots 1s steps(4) infinite;
+}
+@keyframes voice-dots {
+  0%   { content: " ·"; }
+  33%  { content: " ··"; }
+  66%  { content: " ···"; }
+}
+.voice-btn .voice-waves i {
+  width: 2.5px; background: #fff; border-radius: 2px;
+  height: 6px;
+}
+.voice-btn.recording .voice-waves i {
+  animation: voice-bar .8s ease-in-out infinite;
+}
+.voice-btn.recording .voice-waves i:nth-child(1) { animation-delay: 0s;    height: 10px; }
+.voice-btn.recording .voice-waves i:nth-child(2) { animation-delay: .1s;   height: 16px; }
+.voice-btn.recording .voice-waves i:nth-child(3) { animation-delay: .2s;   height: 22px; }
+.voice-btn.recording .voice-waves i:nth-child(4) { animation-delay: .3s;   height: 16px; }
+.voice-btn.recording .voice-waves i:nth-child(5) { animation-delay: .4s;   height: 10px; }
+@keyframes voice-bar {
+  0%, 100% { transform: scaleY(.5); }
+  50%      { transform: scaleY(1.1); }
+}
+
+.foot-tip {
+  display: none;
+}
+
+/* ============================================================
+   唤醒效果 5 种 · 通过 [data-wake="N"] 控制
+   ============================================================ */
+
+/* W1 - 温柔睁眼（默认）：呼吸→闪光→睁眼 */
+[data-wake="1"] .body.awake { animation: w1-pop .6s ease-out; }
+@keyframes w1-pop {
+  0%   { transform: scale(.96); }
+  50%  { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+
+/* W2 - 蓄能爆发：粒子聚拢 + 强光闪过 */
+.particles {
+  position: absolute; inset: 0; pointer-events: none;
+  display: none;
+}
+[data-wake="2"] .particles { display: block; }
+[data-wake="2"] .particles span {
+  position: absolute; width: 6px; height: 6px; border-radius: 50%;
+  background: radial-gradient(circle, #6B8AFE 0%, transparent 70%);
+  left: 50%; top: 50%;
+}
+[data-wake="2"].pressing .particles span {
+  animation: w2-gather 1.2s ease-out forwards;
+}
+[data-wake="2"] .particles span:nth-child(1){ --x:-120px; --y:-100px; animation-delay:0s !important; }
+[data-wake="2"] .particles span:nth-child(2){ --x: 130px; --y:-90px;  animation-delay:.05s !important;}
+[data-wake="2"] .particles span:nth-child(3){ --x:-100px; --y: 80px;  animation-delay:.1s !important; }
+[data-wake="2"] .particles span:nth-child(4){ --x: 110px; --y: 70px;  animation-delay:.15s !important;}
+[data-wake="2"] .particles span:nth-child(5){ --x: 0;     --y:-130px; animation-delay:.2s !important; }
+[data-wake="2"] .particles span:nth-child(6){ --x:-150px; --y: 0;     animation-delay:.25s !important; }
+[data-wake="2"] .particles span:nth-child(7){ --x: 140px; --y: 10px;  animation-delay:.3s !important; }
+[data-wake="2"] .particles span:nth-child(8){ --x: 0;     --y: 120px; animation-delay:.35s !important; }
+@keyframes w2-gather {
+  0%   { transform: translate(var(--x), var(--y)) scale(.6); opacity: 0; }
+  30%  { opacity: 1; }
+  100% { transform: translate(0,0) scale(1.4); opacity: 0; }
+}
+
+/* W3 - 光柱降临：从天而降的蓝色灯光（梯形 · 上窄下宽）
+   组合：外层柔光梯形 + 内层亮芯梯形 + 地面光斑 + 飘落蓝尘
+   关键调优（与上一版相比）：
+   1) 整体不透明度调低（核心从 .95 → .55、柔光 .55 → .32），不再喧宾夺主。
+   2) 全部加 mix-blend-mode: screen —— 屏幕混合让光柱与形象"相加"而非"遮盖"，
+      形象的颜色和细节会透过光柱保留，避免角色被光柱压成一团蓝。
+   3) 入场动画改成「弱 → 强 → 弱」循环呼吸（w3-pulse），更像是真的灯光在颤动，
+      而不是一次性"啪"地打满。 */
+.lightbeam {
+  position: absolute; left: 50%; top: 0;
+  transform: translateX(-50%);
+  width: 240px; height: 100%;
+  pointer-events: none;
+  display: none;
+  /* z-index: 0 + body 没有 z-index → body 在前；再加 mix-blend 双保险 */
+  z-index: 0;
+}
+[data-wake="3"] .lightbeam { display: block; }
+
+/* 外层柔光梯形 —— 上窄下宽，模拟舞台聚光灯打开的扇面（淡） */
+.lightbeam .beam-soft {
+  position: absolute; left: 50%; top: 0;
+  transform: translateX(-50%) scaleY(0);
+  transform-origin: top center;
+  width: 240px; height: 100%;
+  background: linear-gradient(180deg,
+    rgba(150,200,255,.32) 0%,
+    rgba(120,180,255,.22) 35%,
+    rgba(90,160,255,.10)  70%,
+    rgba(60,140,255,.02)  100%);
+  /* 关键：clip-path 把矩形切成梯形（顶 38%-62% 收窄，底 0-100% 展开）*/
+  clip-path: polygon(38% 0%, 62% 0%, 100% 100%, 0% 100%);
+  filter: blur(4px);
+  opacity: 0;
+  mix-blend-mode: screen;
+}
+
+/* 内层亮芯梯形 —— 同样梯形但更窄、稍亮，是光柱的"骨"（淡） */
+.lightbeam .beam-core {
+  position: absolute; left: 50%; top: 0;
+  transform: translateX(-50%) scaleY(0);
+  transform-origin: top center;
+  width: 240px; height: 100%;
+  background: linear-gradient(180deg,
+    rgba(220,240,255,.55) 0%,
+    rgba(170,210,255,.35) 30%,
+    rgba(110,180,255,.18) 65%,
+    rgba(70,150,255,.03)  100%);
+  /* 内层比外层更窄：顶 46-54%，底 25-75% */
+  clip-path: polygon(46% 0%, 54% 0%, 75% 100%, 25% 100%);
+  filter: blur(2px);
+  opacity: 0;
+  mix-blend-mode: screen;
+}
+
+/* 地面光斑 —— 椭圆扁平 hot-spot，承接光柱底部（淡） */
+.lightbeam .beam-spot {
+  position: absolute; left: 50%; bottom: 16%;
+  transform: translateX(-50%) scale(0);
+  width: 200px; height: 38px;
+  background: radial-gradient(ellipse at center,
+    rgba(200,230,255,.55) 0%,
+    rgba(130,190,255,.28) 35%,
+    rgba(80,150,255,.10)  65%,
+    transparent 100%);
+  border-radius: 50%;
+  filter: blur(2px);
+  opacity: 0;
+  mix-blend-mode: screen;
+}
+
+/* 飘落蓝尘 —— 4 颗微粒沿光柱缓缓下落，跟随梯形开口分布 */
+.lightbeam .beam-dust {
+  position: absolute; left: 50%; top: 0;
+  width: 180px; height: 100%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.lightbeam .beam-dust i {
+  position: absolute;
+  width: 4px; height: 4px; border-radius: 50%;
+  background: radial-gradient(circle,
+    rgba(230,245,255,.95) 0%,
+    rgba(140,200,255,.55) 50%,
+    transparent 100%);
+  filter: blur(.4px);
+  opacity: 0;
+  mix-blend-mode: screen;
+}
+/* 注意：粒子横坐标会随顶/底动态偏移，这里给出大致路径起点 */
+.lightbeam .beam-dust i:nth-child(1) { left: 42%; }
+.lightbeam .beam-dust i:nth-child(2) { left: 50%; }
+.lightbeam .beam-dust i:nth-child(3) { left: 58%; }
+.lightbeam .beam-dust i:nth-child(4) { left: 48%; }
+
+/* 入场动画：地面光斑先亮 → 光柱从顶部展开 → 之后切换为持续 pulse 呼吸 → 蓝尘飘落
+   节奏说明：
+   - w3-beam（一次性 1s）：scaleY 从 0 展开到 1，模拟"灯光打开"的瞬间
+   - w3-pulse（循环 2.6s，延迟 1s 接力）：透明度在 0.35 ↔ 0.95 之间起伏，
+     视觉上就是"弱→强→弱→强"循环，像真实的舞台灯在轻轻颤动 */
+[data-wake="3"].pressing .beam-spot {
+  animation:
+    w3-spot 1.2s ease-out forwards,
+    w3-pulse-spot 2.6s ease-in-out 1.2s infinite;
+}
+[data-wake="3"].pressing .beam-soft {
+  animation:
+    w3-beam 1.0s cubic-bezier(.2,.8,.3,1) .15s forwards,
+    w3-pulse-soft 2.6s ease-in-out 1.15s infinite;
+}
+[data-wake="3"].pressing .beam-core {
+  animation:
+    w3-beam 1.0s cubic-bezier(.2,.8,.3,1) .25s forwards,
+    w3-pulse-core 2.6s ease-in-out 1.25s infinite;
+}
+[data-wake="3"].pressing .beam-dust i:nth-child(1) { animation: w3-dust 1.6s ease-in .55s infinite; }
+[data-wake="3"].pressing .beam-dust i:nth-child(2) { animation: w3-dust 1.8s ease-in .75s infinite; }
+[data-wake="3"].pressing .beam-dust i:nth-child(3) { animation: w3-dust 1.4s ease-in .65s infinite; }
+[data-wake="3"].pressing .beam-dust i:nth-child(4) { animation: w3-dust 2.0s ease-in .85s infinite; }
+
+@keyframes w3-beam {
+  0%   { transform: translateX(-50%) scaleY(0);   opacity: 0; }
+  35%  { opacity: .6; }
+  100% { transform: translateX(-50%) scaleY(1);   opacity: .55; }
+}
+@keyframes w3-spot {
+  0%   { transform: translateX(-50%) scale(0);    opacity: 0; }
+  40%  { transform: translateX(-50%) scale(1.2);  opacity: .7; }
+  100% { transform: translateX(-50%) scale(1);    opacity: .55; }
+}
+/* 弱 → 强 → 弱 循环（透明度起伏），保持 scaleY=1 */
+@keyframes w3-pulse-soft {
+  0%, 100% { transform: translateX(-50%) scaleY(1); opacity: .25; }
+  50%      { transform: translateX(-50%) scaleY(1); opacity: .65; }
+}
+@keyframes w3-pulse-core {
+  0%, 100% { transform: translateX(-50%) scaleY(1); opacity: .35; }
+  50%      { transform: translateX(-50%) scaleY(1); opacity: .85; }
+}
+@keyframes w3-pulse-spot {
+  0%, 100% { transform: translateX(-50%) scale(.95); opacity: .30; }
+  50%      { transform: translateX(-50%) scale(1.05); opacity: .75; }
+}
+@keyframes w3-dust {
+  0%   { top: 0%;   opacity: 0; transform: translateY(0)    scale(.6); }
+  20%  { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { top: 80%;  opacity: 0; transform: translateY(0)    scale(1); }
+}
+
+/* W4 - 涟漪扩散：脚下水波 + 缓慢抬头 */
+.ripple-floor {
+  position: absolute; left: 50%; bottom: 14%;
+  transform: translateX(-50%);
+  width: 200px; height: 40px;
+  display: none; pointer-events: none;
+}
+[data-wake="4"] .ripple-floor { display: block; }
+[data-wake="4"] .ripple-floor::before,
+[data-wake="4"] .ripple-floor::after {
+  content: ""; position: absolute; inset: 0; border-radius: 50%;
+  border: 1.5px solid rgba(43,108,255,.5);
+  opacity: 0;
+}
+[data-wake="4"].pressing .ripple-floor::before { animation: w4-ripple 1.2s ease-out 0s forwards; }
+[data-wake="4"].pressing .ripple-floor::after  { animation: w4-ripple 1.2s ease-out .35s forwards; }
+@keyframes w4-ripple {
+  0%   { transform: scale(.4); opacity: .8; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+[data-wake="4"].pressing .body { animation: w4-rise 1.2s ease-out forwards; }
+@keyframes w4-rise {
+  0%   { transform: translateY(8px); }
+  100% { transform: translateY(0); }
+}
+
+/* W5 - 滴答倒计时：3-2-1 文字闪现，强游戏感
+   样式调优：
+   - 字号 120 → 108：原来太霸道
+   - 去掉 -webkit-text-stroke 描边：高分屏上锯齿明显，廉价感重
+   - 改用「线性渐变文字 + 多层柔光阴影」：更通透、有空气感
+   - tabular-nums：等宽数字，3/2/1 切换时不会左右抖动
+   - 加一圈柔光环 ::before 作为底层光晕，烘托舞台感
+   - 入场动画加入微小旋转 + 弹性，节奏更俏皮 */
+.countdown {
+  position: absolute; inset: 0;
+  display: none;
+  pointer-events: none;
+  z-index: 5;
+}
+[data-wake="5"] .countdown { display: block; }
+[data-wake="5"] .countdown span {
+  position: absolute;
+  left: 50%; top: 38%;
+  transform: translate(-50%, -50%) scale(1.6);
+  opacity: 0;
+
+  font-size: 108px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -3px;
+  font-family: 'SF Pro Rounded', 'SF Pro Display', -apple-system,
+               'PingFang SC', 'Helvetica Neue', sans-serif;
+  font-variant-numeric: tabular-nums;
+
+  /* 线性渐变文字：上浅下深的蓝紫色，立体感 */
+  background: linear-gradient(180deg,
+    #8FB8FF 0%,
+    #2B6CFF 45%,
+    #6B5BFF 100%);
+  -webkit-background-clip: text;
+          background-clip: text;
+  -webkit-text-fill-color: transparent;
+          color: transparent;
+
+  /* 多层柔光阴影：贴近的白光 + 远的蓝色辉光 + 底部投影 */
+  filter:
+    drop-shadow(0 0 12px rgba(255,255,255,.85))
+    drop-shadow(0 0 28px rgba(80,130,255,.55))
+    drop-shadow(0 8px 18px rgba(43,108,255,.35));
+}
+
+/* 数字下方的柔光环 —— 仪式感点缀（每个数字独立呼吸） */
+[data-wake="5"] .countdown span::after {
+  content: "";
+  position: absolute;
+  left: 50%; top: 70%;
+  transform: translateX(-50%);
+  width: 140px; height: 14px;
+  background: radial-gradient(ellipse at center,
+    rgba(120,170,255,.55) 0%,
+    rgba(120,170,255,.18) 50%,
+    transparent 100%);
+  filter: blur(3px);
+  pointer-events: none;
+}
+
+/* 倒计时播放中（由 JS 加 .counting 类触发，总时长 1.8s 与 main.js 对齐：每个数字 0.6s × 3） */
+[data-wake="5"].counting .countdown span:nth-child(1) { animation: w5-num .6s cubic-bezier(.3,1.4,.4,1) 0s forwards; }
+[data-wake="5"].counting .countdown span:nth-child(2) { animation: w5-num .6s cubic-bezier(.3,1.4,.4,1) .6s forwards; }
+[data-wake="5"].counting .countdown span:nth-child(3) { animation: w5-num .6s cubic-bezier(.3,1.4,.4,1) 1.2s forwards; }
+@keyframes w5-num {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(1.9) rotate(-8deg); }
+  25%  { opacity: 1; transform: translate(-50%, -50%) scale(1.05) rotate(2deg); }
+  40%  { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+  78%  { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(.6) rotate(4deg); }
+}
+
+/* ============================================================
+   归位效果 5 种 · 通过 [data-return="N"] 控制
+   每种方案采用完全不同的节奏、轨迹、形变与特效
+   ============================================================ */
+
+/* 飞行体（脱离 sheet，绝对定位在 phone 内） */
+.fly-body {
+  position: absolute;
+  pointer-events: none;
+  z-index: 60;
+  opacity: 0;
+}
+.fly-body img {
+  width: 100%; height: 100%; object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 10px 20px rgba(50,80,150,.25));
+}
+
+/* ───────────────────────────────────────────────
+   R1 · 直线收缩（最简洁 · 匀速直达）
+   ─────────────────────────────────────────────── */
+.fly-body[data-return="1"].animate {
+  animation: r1-fly 0.9s cubic-bezier(.4,0,.2,1) forwards;
+}
+@keyframes r1-fly {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+  100% {
+    opacity: 1;
+    left: var(--end-x); top: var(--end-y);
+    width: var(--end-w); height: var(--end-h);
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* ───────────────────────────────────────────────
+   R2 · 弧线弹跳（活泼大弧度 · 先左再右再归位）
+   ─────────────────────────────────────────────── */
+.fly-body[data-return="2"].animate {
+  animation: r2-arc 1.4s cubic-bezier(.5,-.3,.3,1.4) forwards;
+}
+@keyframes r2-arc {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  25% {
+    transform: translate(-120%, -80%) rotate(-15deg) scale(.85);
+  }
+  55% {
+    transform: translate(50%, -120%) rotate(12deg) scale(.55);
+  }
+  80% {
+    left: var(--end-x); top: var(--end-y);
+    width: var(--end-w); height: var(--end-h);
+    transform: translate(-50%, -80%) rotate(-4deg) scale(1.25);
+  }
+  100% {
+    opacity: 1;
+    left: var(--end-x); top: var(--end-y);
+    width: var(--end-w); height: var(--end-h);
+    transform: translate(-50%, -50%) rotate(0deg) scale(1);
+  }
+}
+
+/* ───────────────────────────────────────────────
+   R3 · 化作星粒（虚化 + 放大光晕 + 粒子消散）
+   ─────────────────────────────────────────────── */
+.fly-body[data-return="3"].animate {
+  animation: r3-shrink 1.0s ease-in forwards;
+}
+@keyframes r3-shrink {
+  0% {
+    opacity: 1;
+    filter: blur(0) brightness(1) saturate(1);
+    transform: translate(-50%, -50%) scale(1);
+  }
+  40% {
+    opacity: 1;
+    filter: blur(3px) brightness(1.4) saturate(1.6);
+    transform: translate(-50%, -50%) scale(.75);
+  }
+  70% {
+    opacity: .6;
+    filter: blur(10px) brightness(2) saturate(2);
+    transform: translate(-50%, -50%) scale(.35);
+  }
+  100% {
+    opacity: 0;
+    left: var(--end-x); top: var(--end-y);
+    width: var(--end-w); height: var(--end-h);
+    transform: translate(-50%, -50%) scale(.1);
+    filter: blur(20px) brightness(3) saturate(3);
+  }
+}
+.fly-body[data-return="3"].animate::after {
+  content: ""; position: absolute; inset: -30%;
+  background: radial-gradient(circle, rgba(255,220,130,.9) 0%, rgba(255,180,100,.4) 30%, transparent 70%);
+  animation: r3-glow 1.0s ease-in forwards;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+@keyframes r3-glow {
+  0%   { opacity: 0; transform: scale(.5); }
+  40%  { opacity: .9; transform: scale(1.1); }
+  70%  { opacity: 1; transform: scale(1.4); }
+  100% { opacity: 0; transform: scale(2.2); }
+}
+/* R3 配套：目标头像被"星粒注入"后闪一下 */
+.me-avatar.r3-land {
+  animation: r3-land .6s ease-out;
+}
+@keyframes r3-land {
+  0%   { box-shadow: 0 0 0 0 rgba(255,220,130,0); }
+  40%  { box-shadow: 0 0 30px 8px rgba(255,220,130,.85); transform: scale(1.15); }
+  100% { box-shadow: 0 0 0 0 rgba(255,220,130,0); transform: scale(1); }
+}
+
+/* ───────────────────────────────────────────────
+   R4 · 跳进画框（先蹲-再高跳-落地压扁-回弹）
+   ─────────────────────────────────────────────── */
+.fly-body[data-return="4"].animate {
+  animation: r4-jump 1.6s cubic-bezier(.34,.01,.38,1.05) forwards;
+}
+@keyframes r4-jump {
+  /* 先下蹲 */
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scaleX(1) scaleY(1);
+  }
+  15% {
+    transform: translate(-50%, -42%) scaleX(1.2) scaleY(.75);
+  }
+  /* 起跳腾空 —— 向上大弧线，飞到终点上方 */
+  40% {
+    left: calc(var(--end-x) - 40px); top: calc(var(--end-y) - 60px);
+    transform: translate(-50%, -50%) scaleX(.85) scaleY(1.2) rotate(-8deg);
+    width: calc(var(--end-w) * 2.2); height: calc(var(--end-h) * 2.2);
+  }
+  /* 接近终点上空 */
+  65% {
+    left: var(--end-x); top: calc(var(--end-y) - 30px);
+    width: calc(var(--end-w) * 1.3); height: calc(var(--end-h) * 1.3);
+    transform: translate(-50%, -50%) scale(1) rotate(4deg);
+  }
+  /* 落地压扁 */
+  80% {
+    left: var(--end-x); top: var(--end-y);
+    width: var(--end-w); height: var(--end-h);
+    transform: translate(-50%, -50%) scaleX(1.25) scaleY(.78) rotate(0deg);
+  }
+  /* 回弹 */
+  92% {
+    left: var(--end-x); top: var(--end-y);
+    width: var(--end-w); height: var(--end-h);
+    transform: translate(-50%, -55%) scaleX(.92) scaleY(1.08);
+  }
+  100% {
+    opacity: 1;
+    left: var(--end-x); top: var(--end-y);
+    width: var(--end-w); height: var(--end-h);
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* ───────────────────────────────────────────────
+   R5 · 渐隐 + 目标位置弹出（原地淡出 · 无飞行轨迹）
+   特色：飞行体原地淡出消失，头像位置直接"弹出"
+   ─────────────────────────────────────────────── */
+.fly-body[data-return="5"].animate {
+  animation: r5-fade 0.6s ease-in forwards;
+}
+@keyframes r5-fade {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+    filter: brightness(1);
+  }
+  50% {
+    opacity: .6;
+    transform: translate(-50%, -50%) scale(1.08);
+    filter: brightness(1.4);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.3);
+    filter: brightness(2);
+    /* 注意：不改变 left/top/width/height —— 原地淡出 */
+  }
+}
+/* R5 配套：目标头像从无到有用力弹出（差异度最大） */
+.me-avatar.pop-in {
+  animation: me-pop .7s cubic-bezier(.3,1.6,.4,1);
+}
+@keyframes me-pop {
+  0%   { transform: scale(0) rotate(-180deg); opacity: 0; }
+  40%  { transform: scale(1.35) rotate(10deg); opacity: 1; }
+  70%  { transform: scale(.92) rotate(-4deg); }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
