@@ -31,3 +31,10 @@ dist/
 # ASCII names (pink-portrait.png, pink-awake.png).
 粉色头像.png
 粉色女生_00000_iSpt.png
+
+# tts-server/ is a separate local project with its own .git repo.
+# It was accidentally tracked as a dangling git submodule (gitlink
+# mode 160000, no .gitmodules entry), which made GitHub Pages'
+# actions/checkout step fail on every deploy. Keeping it as an
+# ignored sibling directory so local TTS dev is unaffected.
+tts-server/
