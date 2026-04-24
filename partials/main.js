@@ -484,6 +484,19 @@ function doAwakeReveal() {
   speechText.textContent = text;
   stageArea.classList.add('awake');
 
+  // —— 先把旧文案藏起来，再改写 —— //
+  // 进入此函数时 sheet 通常仍带着上一轮 openSheet 里 replayReveal 留下的
+  // .reveal 类，三行的 forwards 动画已经停留在 opacity:1。如果此时直接替换
+  // textContent，用户会看到【旧文案瞬间变新文案 → 2.3s 后 replayReveal 先
+  // remove('reveal') 让基础规则把它再归零 → 再重新飘入】这样"出现→消失→
+  // 又出现"的 bug。
+  //
+  // 做法：在改文本之前 remove('reveal')，让 `.sheet-head > * { opacity:0 }`
+  // 的基础规则立刻生效 —— 三行瞬间归零（视觉上旧文案就此消失）。此刻用户
+  // 的注意力在闪光和动图放大上，感知不到文案淡出。之后 4.7s 再调
+  // replayReveal() 重新触发飘入，从用户视角只剩一次"文字浮现"。
+  sheet.classList.remove('reveal');
+
   // 更新文案（半屏顶部切换为"已唤醒"的对话感）
   // 生成结果这一屏：
   //   greeting（22px 大标题） = "你的 QQ 秀已苏醒"
