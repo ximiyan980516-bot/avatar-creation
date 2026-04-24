@@ -339,7 +339,7 @@
   margin-top: auto;
 }
 
-/* 5 种唤醒触发控件：默认全部隐藏，由 [data-trigger] 控制显示 */
+/* 6 种唤醒触发控件：默认全部隐藏，由 [data-trigger] 控制显示 */
 .trigger {
   display: none;
   width: 100%;
@@ -349,7 +349,8 @@
 [data-trigger="tap"]   .trigger-tap,
 [data-trigger="slide"] .trigger-slide,
 [data-trigger="shake"] .trigger-shake,
-[data-trigger="voice"] .trigger-voice {
+[data-trigger="voice"] .trigger-voice,
+[data-trigger="click"] .trigger-click {
   display: flex;
 }
 
@@ -567,6 +568,57 @@
 @keyframes voice-bar {
   0%, 100% { transform: scaleY(.5); }
   50%      { transform: scaleY(1.1); }
+}
+
+/* T6 · 单击唤醒（最轻量）
+   视觉与其他四个唤醒按钮保持一致（实蓝实心由 polish-v3.css 统一覆盖），
+   这里只补：尺寸/形状/icon 排版 + 一次性"涟漪"点击反馈。 */
+.click-btn {
+  position: relative;
+  width: 76%; height: 50px;
+  border-radius: 25px;
+  background: linear-gradient(135deg, #2B6CFF 0%, #6B8AFE 100%);
+  color: #fff; font-size: 15px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; user-select: none;
+  gap: 10px;
+  overflow: hidden;
+  box-shadow: 0 8px 20px rgba(43,108,255,.35);
+  transition: transform .15s;
+}
+.click-btn:active { transform: scale(.96); }
+.click-btn .click-icon { display: inline-flex; }
+.click-btn .btn-text { position: relative; z-index: 2; }
+
+/* 静态柔光：让按钮"会呼吸"，提示这是个轻量的可点目标 */
+.click-btn .click-glow {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at center,
+    rgba(255,255,255,.35) 0%,
+    rgba(255,255,255,0)   60%);
+  opacity: 0;
+  animation: click-breath 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes click-breath {
+  0%,100% { opacity: 0; transform: scale(.85); }
+  50%     { opacity: .7; transform: scale(1.05); }
+}
+
+/* 点击瞬间的涟漪反馈（一次性） */
+.click-btn.clicked::after {
+  content: ""; position: absolute;
+  left: 50%; top: 50%;
+  width: 24px; height: 24px;
+  margin: -12px 0 0 -12px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.45);
+  pointer-events: none;
+  animation: click-ripple .55s ease-out;
+}
+@keyframes click-ripple {
+  0%   { transform: scale(.4); opacity: .9; }
+  100% { transform: scale(8);  opacity: 0; }
 }
 
 .foot-tip {

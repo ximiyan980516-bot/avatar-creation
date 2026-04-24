@@ -30,6 +30,7 @@ const TRIGGERS = [
   { id: 'slide', title: '滑动解锁',   desc: 'iPhone 式横滑，推开一扇窗' },
   { id: 'shake', title: '摇一摇',     desc: '晃动手机，复古又亲密' },
   { id: 'voice', title: '按住说话',   desc: '呼喊 QQ 秀的名字，最有对话感' },
+  { id: 'click', title: '单击唤醒',   desc: '最轻量，点一下即可' },
 ];
 
 const RETURNS = [
@@ -62,6 +63,7 @@ const SUBTITLES_BY_TRIGGER = {
   slide: '从左滑到右，推开 QQ 秀的那扇窗',
   shake: '晃一晃手机，QQ 秀会听见',
   voice: '按住说话，喊一声 QQ 秀的名字',
+  click: '点一下，QQ 秀就来了',
 };
 const SPEECHES = [
   'Hi，初次见面',
@@ -133,7 +135,7 @@ const body        = document.getElementById('body');
 const speech      = document.getElementById('speech');
 const flyBody     = document.getElementById('flyBody');
 
-// 5 种触发控件
+// 6 种触发控件
 const pressBtn      = document.getElementById('pressBtn');
 const pressProgress = document.getElementById('pressProgress');
 const pressBtnText  = document.getElementById('pressBtnText');
@@ -146,6 +148,8 @@ const shakeBtn      = document.getElementById('shakeBtn');
 const shakeBtnText  = document.getElementById('shakeBtnText');
 const voiceBtn      = document.getElementById('voiceBtn');
 const voiceBtnText  = document.getElementById('voiceBtnText');
+const clickBtn      = document.getElementById('clickBtn');
+const clickBtnText  = document.getElementById('clickBtnText');
 
 // 保存按钮
 const saveRow       = document.getElementById('saveRow');
@@ -399,6 +403,15 @@ voiceBtn.addEventListener('touchstart', voiceStart, { passive: false });
   voiceBtn.addEventListener(ev, voiceEnd);
 });
 
+// ======= T6 · 单击唤醒（最轻量）=======
+clickBtn.addEventListener('click', () => {
+  if (state.awake || state.trigger !== 'click') return;
+  // 视觉反馈：按钮加一个一次性 ring 涟漪类，文字短暂改为"已唤醒～"
+  clickBtn.classList.remove('clicked'); void clickBtn.offsetWidth; clickBtn.classList.add('clicked');
+  clickBtnText.textContent = '已收到，正在唤醒…';
+  setTimeout(() => onWakeSuccess(), 220);
+});
+
 // ======= 唤醒成功（所有交互方式汇聚到这） =======
 function onWakeSuccess() {
   if (state.awake) return;
@@ -570,6 +583,9 @@ function resetToSleeping({ closeAfter = true } = {}) {
   voiceBtn.classList.remove('recording');
   voiceBtnText.textContent = '按住说「嘿，起床啦」';
   if (voiceTimer) { clearTimeout(voiceTimer); voiceTimer = null; }
+
+  clickBtn.classList.remove('clicked');
+  clickBtnText.textContent = '点一下，唤醒 QQ 秀';
 
   flyBody.classList.remove('animate');
   flyBody.style.opacity = '0';
