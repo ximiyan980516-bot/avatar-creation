@@ -237,15 +237,20 @@ button:focus-visible,
 
 
 /* ============================================================
-   6. .opt 卡片：替换通用边框 → 仅用背景色变化承担选中态
-   redesign-skill 第 6 章：「通用卡片（边框+阴影+白底）→ 仅用背景色或间距」
+   6. .opt 卡片（唤醒交互方式）：四个方案统一用"蓝色家族"
+   --------------------------------------------------------------
+   用户希望几个方案按钮都呈蓝色，但不能全饱和（会糊成一团、分不清选中）。
+   做法：分两层 ——
+     · 未选中：浅蓝底 + 蓝边 + 蓝字 idx，属于"蓝家族"成员
+     · 选中：更深的蓝底 + 染色阴影 + 内高光，识别度顶上去
+   redesign-skill 第 6 章：「用背景色变化承担状态切换」
    ============================================================ */
 
-/* 6.1 未选中：极淡背景，不靠边框承担"卡片感" */
+/* 6.1 未选中（默认蓝化）：浅蓝底 + 浅蓝边，整组"全员蓝色"的视觉印象 */
 .opt {
-  /* 不动原边框，只把它"软化"成接近背景的色，让 active 态更显眼 */
-  border-color: rgba(20, 30, 60, .06);
-  box-shadow: 0 1px 2px rgba(20, 30, 60, .03);
+  background: rgba(0, 153, 255, .05);
+  border-color: rgba(0, 153, 255, .22);
+  box-shadow: 0 1px 2px rgba(0, 153, 255, .04);
   transition:
     background var(--dur-small, 220ms) var(--ease-out, ease),
     border-color var(--dur-small, 220ms) var(--ease-out, ease),
@@ -253,19 +258,37 @@ button:focus-visible,
     transform var(--dur-micro, 120ms) var(--ease-out, ease);
 }
 
-/* 6.2 hover：极轻染色背景，告诉用户"可点" */
-.opt:hover:not(.active) {
-  background: rgba(43, 108, 255, .035);
-  border-color: rgba(43, 108, 255, .12);
+/* 6.1.1 标题文字也微微染蓝（不饱和，避免干扰阅读） */
+.opt .opt-title {
+  color: #1a3a6b;
+}
+.opt .opt-desc {
+  color: rgba(20, 60, 120, .6);
 }
 
-/* 6.3 active：染色阴影 + 内高光，让"已选"有量感 */
+/* 6.1.2 未选中态的 idx 序号也用浅蓝底 + 蓝字（替代原中性灰） */
+.opt .opt-title .idx {
+  background: rgba(0, 153, 255, .14);
+  color: #0066b3;
+}
+
+/* 6.2 hover：背景加深一档，告诉用户"可点" */
+.opt:hover:not(.active) {
+  background: rgba(0, 153, 255, .09);
+  border-color: rgba(0, 153, 255, .35);
+}
+
+/* 6.3 active（选中）：实蓝染色阴影 + 更深背景 + 内高光，识别度顶起来 */
 .opt.active {
-  border-color: rgba(43, 108, 255, .35);
+  background: rgba(0, 153, 255, .14);
+  border-color: var(--brand-standard);
   box-shadow:
-    0 0 0 1px rgba(43, 108, 255, .15),
-    0 4px 16px rgba(43, 108, 255, .12),
+    0 0 0 1px rgba(0, 153, 255, .25),
+    0 6px 18px rgba(0, 153, 255, .20),
     inset 0 1px 0 rgba(255, 255, 255, .9);
+}
+.opt.active .opt-title {
+  color: #0066b3;
 }
 
 
