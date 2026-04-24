@@ -41,7 +41,7 @@
       <!-- 顶部导航：我的头像（入口） -->
       <div class="navbar">
         <div class="me-avatar" id="meAvatar" data-effect="1">
-          <img src="assets/avatar/body-closed.png" alt="我的头像" id="meAvatarImg" />
+          <img src="assets/avatar/pink-portrait.png" alt="我的头像" id="meAvatarImg" />
           <!-- 各类动效叠加层 -->
           <div class="fx-layer"></div>
           <div class="fx-outer">
@@ -123,8 +123,10 @@
             <div class="halo-orbit">
               <span></span><span></span><span></span>
             </div>
-            <img class="img-closed" src="assets/avatar/body-closed.png" alt="" />
-            <img class="img-open"   src="assets/avatar/body-open.png"   alt="" />
+            <!-- 闭眼态：静态粉色头像（沉睡） -->
+            <img class="img-closed" src="assets/avatar/pink-portrait.png" alt="" />
+            <!-- 睁眼态：APNG 动图，从沉睡到活过来（loop=1，播完定格在最后一帧） -->
+            <img class="img-open"   src="assets/avatar/pink-awake.png"    alt="" />
             <div class="flash"></div>
           </div>
           <!-- 角色台词气泡：唤醒后可编辑作为「我的 Slogan」，并支持切换音色、播放 TTS
@@ -241,9 +243,9 @@
         </div>
       </div>
 
-      <!-- 飞行体（归位） -->
+      <!-- 飞行体（归位）：用活过来后的形象（静态定格即可，飞行途中不需要重播动画） -->
       <div class="fly-body" id="flyBody" data-return="1">
-        <img src="assets/avatar/body-open.png" alt="" />
+        <img src="assets/avatar/pink-portrait.png" alt="" />
       </div>
 
     </div>

@@ -132,6 +132,9 @@ const sheetTitle    = document.getElementById('sheetTitle');
 const sheetSubtitle = document.getElementById('sheetSubtitle');
 const stageArea   = document.getElementById('stageArea');
 const body        = document.getElementById('body');
+// 身体里的"睁眼态"APNG（粉色女生从沉睡到活过来）——需要在每次唤醒时重放
+const bodyOpenImg = body.querySelector('.img-open');
+const BODY_OPEN_SRC = 'assets/avatar/pink-awake.png';
 const speech      = document.getElementById('speech');
 /* 气泡里真正承载文字 + contenteditable 的节点；
    单独拆出来是为了让 ▶ 播放按钮能和文字并排、又不会被 contenteditable 影响 */
@@ -455,6 +458,10 @@ function doAwakeReveal() {
   setTimeout(() => {
     body.classList.add('awake');
     body.classList.remove('flashing');
+    // APNG 只会在 src 首次加载时从第 0 帧播放；这里用时间戳 query
+    // 强制浏览器重新解码，让"从沉睡到活过来"的 5 秒动画每次都从头播。
+    // loop=1（见文件本身的 acTL 改写），播完会定格在最后一帧（已睁眼）。
+    if (bodyOpenImg) bodyOpenImg.src = BODY_OPEN_SRC + '?t=' + Date.now();
   }, 380);
 
   // 显示台词：优先用用户保存的 Slogan，否则随机
@@ -543,7 +550,9 @@ function triggerReturn() {
 }
 
 function onFlyEnd() {
-  meAvatarImg.src = 'assets/avatar/body-open.png';
+  // 归位后入口头像固定用粉色头像（已经是"那个形象"的定妆照，
+  // 不需要在导航栏里再播一次醒来动画）
+  meAvatarImg.src = 'assets/avatar/pink-portrait.png';
 
   // returned 状态已在 triggerReturn 里加好，这里只处理归位特效
   meAvatar.classList.remove('pop-in', 'r3-land');
@@ -597,9 +606,9 @@ function resetToSleeping({ closeAfter = true } = {}) {
   if (closeAfter) closeSheet();
 }
 
-// ======= 重置整个流程（把顶部头像也换回闭眼） =======
+// ======= 重置整个流程（把顶部头像也换回静态入口） =======
 document.getElementById('resetBtn').addEventListener('click', () => {
-  meAvatarImg.src = 'assets/avatar/body-closed.png';
+  meAvatarImg.src = 'assets/avatar/pink-portrait.png';
   meAvatar.classList.remove('pop-in', 'r3-land', 'returned');
   resetToSleeping({ closeAfter: true });
 });

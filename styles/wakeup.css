@@ -150,7 +150,7 @@
 }
 
 /* 闭眼状态：第一版的圆形头像（小尺寸、垂直居中）
-   素材统一用 body-closed.png（与 navbar 入口一致），
+   素材统一用 pink-portrait.png（与 navbar 入口一致），
    用 object-position 把头肩部裁进圆形里 */
 .body .img-closed {
   position: absolute;
