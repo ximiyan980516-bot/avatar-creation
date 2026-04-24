@@ -330,16 +330,14 @@
      3) .img-open 附加 brightness/saturate 提亮，让"爆发"一瞬的色彩更鲜亮。
    注意：keyframes 里必须包含完整的 transform，否则浏览器会把缺失值视为
    initial（translateY=0, scale=1），造成位置跳变。 */
-/* ─── 爆发光晕：改用"水波纹双圈 + 柔和中心晕"组合 ───
-   参考入口态的呼吸光圈（.halo-ring：1.5px 描边 scale(.9→1.35) 淡出）
-   和 effects.css 里的 fx2-ripple（描边圆环 scale(1→2) opacity .9→0）。
-   之前用实心径向渐变虽然亮，但缺少"一圈一圈往外推"的水波质感，
-   和入口风格不统一。现在叠 3 层：
-     ::before  —— 柔和粉色中心晕（兜底气氛），很快淡出
+/* ─── 爆发光晕：蓝色水波纹双圈 ───
+   参考入口态的 .halo-ring（rgba(0,153,255,.5) 1.5px 描边，scale .9→1.35 淡出）
+   和 effects.css 里的 fx2-ripple，做一组同色系的爆发水波：
      ::after   —— 第一圈描边波纹：scale .45→1.6，opacity 近全→0
-     + 第二圈同参数但 delay 0.22s，形成追赶式的双层波
-   尺寸基准用 inset:-90%（.body 180×220 被 .img-open scale(2.28) 撑大到
-   ~410×500，所以波纹范围必须远超 .body 本体才"包得住人物"）。
+     ::before  —— 第二圈描边 + 柔和中心蓝晕，delay 0.22s 追赶扩散
+   用蓝色是延续入口的视觉语言（用户反馈"光晕还是用蓝色"）。
+   尺寸基准 inset:-90%（.body 180×220 被 .img-open scale(2.052) 撑大到
+   ~370×450，波纹范围必须远超 .body 本体才"包得住人物"）。
    z-index: 5 仍在 img 层之上，视觉是"从角色身位往外一圈圈炸开"。 */
 
 /* 第一圈描边波纹 */
@@ -347,8 +345,8 @@
   content: '';
   position: absolute; inset: -90%;
   border-radius: 50%;
-  border: 2px solid rgba(255, 120, 180, .85);
-  box-shadow: 0 0 24px 4px rgba(255, 150, 200, .35);
+  border: 2px solid rgba(0, 153, 255, .75);
+  box-shadow: 0 0 24px 4px rgba(80, 170, 255, .3);
   pointer-events: none;
   opacity: 0;
   transform: scale(.45);
@@ -356,23 +354,16 @@
   z-index: 5;
 }
 
-/* 中心柔光晕 + 第二圈描边波纹都靠 ::before 承载？
-   一个伪元素只能放一种图形，所以把中心晕放 ::before，
-   第二圈描边我们用一个真实子节点（.burst-ripple）加在 .body 里。
-   但为了不改 HTML，用 background 双图层：中心径向 + 更外的描边做不了描边。
-   折中方案：::before = 中心晕，另外再靠 .img-open 层上的一个 outline 也不行。
-   最终方案：::before 同时画"描边圆 + 中心淡淡晕"，用 box-shadow 多层模拟，
-   然后 animation-delay 0.22s，和 ::after 形成双波追赶。 */
+/* 第二圈描边 + 柔和蓝色中心晕（延后 0.22s 追赶） */
 .body.burst::before {
   content: '';
   position: absolute; inset: -90%;
   border-radius: 50%;
-  border: 1.5px solid rgba(255, 150, 200, .7);
-  /* 中心柔光：用内投影 + 外投影叠，像粉色水膜一样 */
+  border: 1.5px solid rgba(120, 180, 255, .6);
   background: radial-gradient(circle,
-              rgba(255, 200, 225, .55) 0%,
-              rgba(255, 180, 215, .25) 35%,
-              rgba(255, 180, 215, 0)   70%);
+              rgba(150, 200, 255, .45) 0%,
+              rgba(120, 180, 255, .2)  35%,
+              rgba(120, 180, 255, 0)   70%);
   pointer-events: none;
   opacity: 0;
   transform: scale(.45);
@@ -387,18 +378,14 @@
   100% { opacity: 0;   transform: scale(1.6); }
 }
 
-/* 角色本身：只保留 scale 回弹，不再做亮度/饱和度拉升 ——
-   用户反馈"去掉短暂亮度/饱和度拉升"，同时解决之前 halo 被盖导致看不到的
-   问题（halo 现在走更高 z-index + 更大范围，不再依赖与 img 的叠色）。 */
-.body.burst .img-open {
-  animation: img-burst-pulse .7s cubic-bezier(.25,1.4,.35,1) forwards;
-}
-@keyframes img-burst-pulse {
-  0%   { transform: translateY(63px) scale(2.052); }
-  25%  { transform: translateY(61px) scale(1.980); }  /* 轻微蓄力下压 */
-  60%  { transform: translateY(58px) scale(2.178); }  /* 过冲放大 */
-  100% { transform: translateY(63px) scale(2.052); }  /* 回到原位定格 */
-}
+/* 角色本身：爆发时不再做 scale 回弹 ——
+   用户反馈"光晕不要让动图播放看起来卡顿"。之前 .body.burst .img-open 会跑
+   一段 0.7s 的 img-burst-pulse（scale 2.052 → 1.98 → 2.178 → 2.052），
+   这段 transform 动画会完全接管 .img-open 的 transform 通道，让 APNG
+   本身的帧播放叠加上一个起伏的缩放，视觉上像是"动作被掐了一下 / 定住了
+   半秒再继续"——就是用户说的"卡顿"。
+   现在 burst 只走外圈水波纹，不改角色 transform，APNG 能完整顺畅地
+   播到尾帧定格。 */
 
 /* 角色台词气泡：紧贴人物右侧（人物在 stage 居中，右边缘 ≈ 中心+90px），
    气泡左尖几乎挨着人物头肩位置，更像"从他嘴边冒出来"
