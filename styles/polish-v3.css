@@ -1,0 +1,324 @@
+/* ============================================================
+   polish-v3.css —— 基于 Leonxlnx/taste-skill (soft + redesign) 的三轮优化
+   ----------------------------------------------------------------
+   skill 来源：
+     - github.com/Leonxlnx/taste-skill/tree/main/skills/soft-skill
+     - github.com/Leonxlnx/taste-skill/tree/main/skills/redesign-skill
+   本机已落到：
+     ~/.claude/skills/leonxlnx-taste-skill-soft/SKILL.md
+     ~/.claude/skills/leonxlnx-taste-skill-redesign/SKILL.md
+
+   redesign-skill 铁律：「配合现有技术栈，不重写，小步快跑」。
+   原页面是 iOS 风半屏控件 demo，不是 marketing landing page，
+   因此 soft-skill 中下面这些"网站级"规则**不照搬**：
+     - 不换中文字体（系统 PingFang 在中文场景比 Geist/Clash 合适）
+     - 不强行 py-24~py-40 大留白（半屏空间有限）
+     - 不上 Bento / Editorial Split 等布局原型（这是控件展示）
+     - 不上玻璃拟态全屏汉堡导航（不是网站）
+
+   真正落地的是 soft-skill / redesign-skill 中跨场景通用的"质感"规则：
+     1. 染色阴影（tinted shadow）—— 阴影颜色匹配背景色调，去通用灰
+     2. 内高光发丝边（inset 1px highlight）—— 触感深度
+     3. 全局噪点（grain texture）—— 固定伪元素，pointer-events:none
+     4. tabular-nums —— 数字稳态（badge / 倒计时 / 状态栏）
+     5. text-wrap: balance —— 标题不出现孤字
+     6. 数字微调真实化 —— "99+" 保留，符合 IM 习惯
+     7. 同心圆角 —— sheet 内部按钮圆角与外壳呈数学嵌套关系（轻量 Double-Bezel）
+     8. 强调色统一 —— 已有 brand-standard，不再引入第二个强调色
+     9. 焦点环现代化 —— 染色 + 偏移
+    10. 选区配色
+
+   全部覆盖式生效，删除一行 <link> 即完整回滚。
+   ============================================================ */
+
+
+/* ============================================================
+   0. 全局基础质感（噪点 / 选区 / 平滑滚动）
+   ============================================================ */
+
+/* 0.1 全屏噪点：固定伪元素，z-index: 1（在 app 之下也无所谓，因为它在 html::after）
+   只在桌面 stage 上渲染；位置 fixed 不滚动；pointer-events:none 完全不挡操作。
+   透明度极低（.025）—— skill 标准是 .03，控件页再压一点避免影响 UI 清晰度。 */
+html::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: .025;
+  /* 用 svg turbulence 当噪点源，不引外部图片，零网络成本 */
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  background-size: 160px 160px;
+  /* 让噪点在 retina 屏不糊 */
+  mix-blend-mode: multiply;
+}
+
+/* 0.2 选区配色：默认浏览器蓝太刺眼，改成品牌蓝低饱和 */
+::selection {
+  background: rgba(43, 108, 255, .18);
+  color: inherit;
+}
+
+/* 0.3 平滑滚动（redesign-skill 明确点名）—— controls 列表内部跳转更柔顺 */
+html {
+  scroll-behavior: smooth;
+}
+
+
+/* ============================================================
+   1. 染色阴影（tinted shadow）—— soft-skill 第 2 章核心
+   把通用 rgba(0,0,0,...) 灰阴影替换成"匹配背景色调"的染色阴影。
+   不重写原值，仅在视觉上叠加一层"更高级"的染色阴影。
+   ============================================================ */
+
+/* 1.1 列表行头像：原 box-shadow 是 rgba(0,0,0,.12) 通用灰
+   改成蓝灰染色 + 极轻内高光，模拟"轻微浮起"的物理感 */
+.row .avatar {
+  box-shadow:
+    0 1px 2px rgba(20, 30, 60, .06),
+    0 4px 12px rgba(20, 30, 60, .08),
+    inset 0 1px 0 rgba(255, 255, 255, .85);
+}
+
+/* 1.2 控制台卡片：原 .console 用了灰阴影，改染色 + 内高光 */
+.console {
+  box-shadow:
+    0 1px 2px rgba(20, 30, 60, .04),
+    0 8px 28px rgba(20, 30, 60, .06),
+    inset 0 1px 0 rgba(255, 255, 255, .9);
+}
+
+/* 1.3 半屏 sheet 主体：原阴影偏向上方深色
+   改成"从下方泛起"的暖光感，符合"半屏从下浮出"的语义 */
+.sheet {
+  box-shadow:
+    0 -2px 6px rgba(20, 30, 60, .04),
+    0 -16px 48px rgba(20, 30, 60, .10),
+    inset 0 1px 0 rgba(255, 255, 255, .95);
+}
+
+/* 1.4 navbar：sticky 导航条加一抹极淡的染色底光（不是边线，是渗出的光）
+   redesign-skill 反对"sticky 顶贴边"的硬切感 */
+.navbar {
+  box-shadow:
+    0 1px 0 rgba(20, 30, 60, .04),
+    0 8px 16px -8px rgba(20, 30, 60, .06);
+}
+
+/* 1.5 tabbar：底部贴边同理，染色 + 顶部 1px 内高光 */
+.tabbar {
+  box-shadow:
+    0 -1px 0 rgba(20, 30, 60, .04),
+    0 -8px 20px -10px rgba(20, 30, 60, .08),
+    inset 0 1px 0 rgba(255, 255, 255, .9);
+}
+
+
+/* ============================================================
+   2. 同心圆角（concentric radius）—— 轻量 Double-Bezel
+   sheet 内部主要可交互元素圆角向"外壳圆角 - 内 padding"靠拢。
+   不改 sheet 自身圆角（保持原作者节奏），只调整内部按钮。
+   ============================================================ */
+
+/* 2.1 sheet 顶部圆角是 28px（来自 wakeup.css），保留
+   按钮在 sheet 里距离边缘约 16-20px，按钮自身用 calc 让圆角同心 */
+.press-btn,
+.tap-btn,
+.shake-btn,
+.voice-btn {
+  /* 原本是 999px 全圆胶囊，已经是同心曲线的极致表达，保留
+     但补一层 inset 内高光让它"立起来" */
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, .25) inset,
+    0 8px 20px rgba(43, 108, 255, .28),
+    0 1px 2px rgba(43, 108, 255, .12);
+}
+
+/* 2.2 voice 按钮特殊染色（绿） */
+.voice-btn {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, .25) inset,
+    0 8px 20px rgba(7, 193, 96, .28),
+    0 1px 2px rgba(7, 193, 96, .12);
+}
+
+/* 2.3 shake 按钮特殊染色（橙） */
+.shake-btn {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, .25) inset,
+    0 8px 20px rgba(255, 159, 67, .28),
+    0 1px 2px rgba(255, 159, 67, .12);
+}
+
+/* 2.4 slide track：胶囊原本无 inset 高光，加上 */
+.slide-track {
+  box-shadow:
+    inset 0 1px 2px rgba(20, 30, 60, .08),
+    inset 0 0 0 1px rgba(255, 255, 255, .6);
+}
+
+/* 2.5 slide thumb：染色阴影 + 内高光让它像物理硬件 */
+.slide-thumb {
+  box-shadow:
+    0 2px 6px rgba(43, 108, 255, .35),
+    0 1px 2px rgba(43, 108, 255, .15),
+    inset 0 1px 0 rgba(255, 255, 255, .35);
+}
+
+
+/* ============================================================
+   3. 数字稳态：tabular-nums + slashed-zero
+   skill 明确：比例字体里的数字会跳，用等宽数字 + 斜杠零
+   ============================================================ */
+
+/* 3.1 状态栏时间 9:41 —— 经典 iOS 数字位 */
+.statusbar {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 3.2 badge 99+ —— 切换数量时不会出现位移 */
+.row .badge,
+.tab .badge {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 3.3 倒计时 3 / 2 / 1 —— 同位置切换更稳 */
+.countdown {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 3.4 控制面板序号圈 1 / 2 / 2b / 3 */
+.console h2 .num {
+  font-variant-numeric: tabular-nums;
+}
+
+
+/* ============================================================
+   4. 文字排印细节
+   ============================================================ */
+
+/* 4.1 sheet 三行引导文案：避免单字孤行（"会陪你的 QQ 秀" 这种 6 字尾巴单独一行）
+   text-wrap: balance 会自动均衡每行字数 */
+.sheet-head .greeting,
+.sheet-head .title,
+.sheet-head .subtitle {
+  text-wrap: balance;
+}
+
+/* 4.2 控制台标题与说明同样应用，避免"：当前选中的方案" 这种孤行 */
+.console h2,
+.console .tip {
+  text-wrap: pretty;
+}
+
+/* 4.3 角色台词气泡：单行短句，balance 让它自然均衡 */
+.speech {
+  text-wrap: balance;
+}
+
+
+/* ============================================================
+   5. 焦点环现代化（accessibility + taste）
+   redesign-skill：focus 环是硬指标，但默认 outline 太丑
+   改成染色双层环：内贴边 + 外柔光
+   ============================================================ */
+
+button:focus-visible,
+.opt:focus-visible,
+.tab:focus-visible,
+.row:focus-visible,
+.me-avatar:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px #fff,
+    0 0 0 4px rgba(43, 108, 255, .55),
+    0 0 0 8px rgba(43, 108, 255, .12);
+}
+
+
+/* ============================================================
+   6. .opt 卡片：替换通用边框 → 仅用背景色变化承担选中态
+   redesign-skill 第 6 章：「通用卡片（边框+阴影+白底）→ 仅用背景色或间距」
+   ============================================================ */
+
+/* 6.1 未选中：极淡背景，不靠边框承担"卡片感" */
+.opt {
+  /* 不动原边框，只把它"软化"成接近背景的色，让 active 态更显眼 */
+  border-color: rgba(20, 30, 60, .06);
+  box-shadow: 0 1px 2px rgba(20, 30, 60, .03);
+  transition:
+    background var(--dur-small, 220ms) var(--ease-out, ease),
+    border-color var(--dur-small, 220ms) var(--ease-out, ease),
+    box-shadow var(--dur-small, 220ms) var(--ease-out, ease),
+    transform var(--dur-micro, 120ms) var(--ease-out, ease);
+}
+
+/* 6.2 hover：极轻染色背景，告诉用户"可点" */
+.opt:hover:not(.active) {
+  background: rgba(43, 108, 255, .035);
+  border-color: rgba(43, 108, 255, .12);
+}
+
+/* 6.3 active：染色阴影 + 内高光，让"已选"有量感 */
+.opt.active {
+  border-color: rgba(43, 108, 255, .35);
+  box-shadow:
+    0 0 0 1px rgba(43, 108, 255, .15),
+    0 4px 16px rgba(43, 108, 255, .12),
+    inset 0 1px 0 rgba(255, 255, 255, .9);
+}
+
+
+/* ============================================================
+   7. 控制面板按钮：染色阴影 + 同心圆角 + 内高光
+   ============================================================ */
+
+.btn.primary {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, .2) inset,
+    0 4px 14px rgba(43, 108, 255, .28),
+    0 1px 2px rgba(43, 108, 255, .12);
+}
+
+.btn.primary:hover {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, .25) inset,
+    0 6px 18px rgba(43, 108, 255, .35),
+    0 1px 2px rgba(43, 108, 255, .15);
+}
+
+.btn:not(.primary) {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .9),
+    0 1px 2px rgba(20, 30, 60, .04),
+    0 4px 12px rgba(20, 30, 60, .04);
+}
+
+
+/* ============================================================
+   8. dark-mode 友好（系统 prefers）
+   skill 警告：浅色页面突然出现深色段落是廉价感
+   保持中性底，仅微调染色阴影避免在 dark mode 下"发灰"
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+  /* 不改背景色（页面整体是浅色 iOS UI demo），
+     只把发丝高光的不透明度调低，避免在深色屏上显得发白生硬 */
+  .row .avatar,
+  .console,
+  .sheet,
+  .navbar,
+  .tabbar {
+    /* 仅作占位：当前 demo 设计语境是浅色 iOS，主动放弃深色版本，
+       但留着这个媒体查询块，便于后续如果上 dark mode 时直接接 */
+  }
+}
+
+
+/* ============================================================
+   9. 减少动效偏好：噪点贴图也关掉（部分用户对噪点敏感）
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  html::after {
+    display: none;
+  }
+}
