@@ -56,13 +56,21 @@
 .sheet .sheet-head {
   text-align: center;
   padding: 0 28px 6px;
-  /* margin-top 从 8px → 32px：用户要求\"文案下移一些\"，让标题与上方
-     形象之间留更多呼吸空间，视觉分层更清晰。 */
-  margin-top: 32px;
+  /* 默认（唤醒前）：margin-top 收到 -8px，让引导文案整体上移、更贴近
+     头像下方。对应用户反馈\"唤醒前的文案上移一些\"。
+     唤醒后由下面 .stage-area.awake ~ .sheet-head 覆盖为 32px —— 唤醒后
+     APNG 放大需要和文案拉开距离，两种状态用不同 margin-top 分别处理。 */
+  margin-top: -8px;
   margin-bottom: 14px;
   flex-shrink: 0;
   position: relative;
   z-index: 2;
+}
+/* 唤醒后：恢复较大的顶部间距，给放大后的 APNG 留呼吸空间。
+   .stage-area.awake 与 .sheet-head 都是 .sheet 的直接子节点
+   （stage-area 在前、sheet-head 在后），用一般同辈选择器 ~ 命中。 */
+.sheet .stage-area.awake ~ .sheet-head {
+  margin-top: 32px;
 }
 /* 逐句浮现：每行独立动画，交错延迟
    叙事节奏：头像先放大入场（0.7s），随后文案 一句一句 飘出
