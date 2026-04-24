@@ -565,11 +565,60 @@ saveCancelBtn.addEventListener('click', () => {
   sheetSubtitle.textContent = '再看看 QQ 秀~ 准备好了随时点「开启 QQ 秀」';
 });
 
+// ======= 抓取 APNG 当前定格帧 → DataURL =======
+// 用户反馈："点击开启 QQ 秀，应该是动图最后一帧回到左上角，而不是静态头像"。
+// 问题背景：
+//   - 半屏里的 .img-open 是 APNG（loop=1），播完定格在最后一帧——视觉上"醒着"的样子；
+//   - 但归位时 #flyBody 里一直用的是 pink-portrait.png（静态闭眼圆头像），
+//     落位后又把 meAvatarImg.src 也设成这张，相当于"醒了一下又睡回去"。
+// 解决思路：
+//   在触发归位飞行的瞬间（此时 .img-open 在屏上显示的就是 APNG 的最后一帧），
+//   用 <canvas> 把它当前画面画下来，导出 PNG dataURL。<img drawImage> 拿到的
+//   就是"当前帧"，即定格那一帧。然后把这张真正的末帧静态图喂给：
+//     1) 飞行体 #flyBody 里的 <img>  —— 飞的一路就是醒着形象；
+//     2) navbar 的 meAvatarImg        —— 落位后头像也是醒着形象。
+//   这样不需要额外素材文件，也不用担心 APNG 换 src 被重置到第 1 帧的副作用。
+//
+// 失败兜底：canvas 抓取可能因为图片尚未 complete / 跨域污染而失败——
+// 此时返回 null，调用方会退回到原来的 pink-awake.png 或 pink-portrait.png。
+// 本项目 APNG 和页面同源，不会踩 tainted canvas。
+let cachedAwakeFrameDataURL = null;
+function captureAwakeLastFrameDataURL() {
+  if (cachedAwakeFrameDataURL) return cachedAwakeFrameDataURL;
+  try {
+    if (!bodyOpenImg || !bodyOpenImg.complete || !bodyOpenImg.naturalWidth) {
+      return null;
+    }
+    const w = bodyOpenImg.naturalWidth;
+    const h = bodyOpenImg.naturalHeight;
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(bodyOpenImg, 0, 0, w, h);
+    cachedAwakeFrameDataURL = canvas.toDataURL('image/png');
+    return cachedAwakeFrameDataURL;
+  } catch (err) {
+    // 任何异常都不让它阻断归位流程
+    console.warn('[awake-frame] capture failed, falling back', err);
+    return null;
+  }
+}
+
 // ======= 归位飞行 =======
 function triggerReturn() {
   const phone = document.getElementById('phone');
   const phoneRect = phone.getBoundingClientRect();
   const bodyRect = body.getBoundingClientRect();
+
+  // 飞行体的 <img> 默认是 pink-portrait.png（闭眼圆头像），但此刻半屏里的
+  // APNG 已经播完定格在"醒着的最后一帧"。把那一帧抓下来塞给飞行体，让
+  // 归位过程看到的就是醒着的形象。
+  const awakeFrame = captureAwakeLastFrameDataURL();
+  if (awakeFrame) {
+    const flyImg = flyBody.querySelector('img');
+    if (flyImg) flyImg.src = awakeFrame;
+  }
 
   // 提前把顶部头像切换成"圆角方形全身像"的尺寸/形状，
   // 这样飞行体的终点才能精准落到最终形态上，避免落位后"跳一下"。
@@ -611,9 +660,12 @@ function triggerReturn() {
 }
 
 function onFlyEnd() {
-  // 归位后入口头像固定用粉色头像（已经是"那个形象"的定妆照，
-  // 不需要在导航栏里再播一次醒来动画）
-  meAvatarImg.src = 'assets/avatar/pink-portrait.png';
+  // 归位后入口头像应当显示"APNG 最后一帧"（= 醒着的粉色形象），而不是
+  // 闭眼的静态圆头像。优先用 triggerReturn 里抓到的定格帧 dataURL；如果
+  // 抓取失败（比如 bodyOpenImg 还没加载完），退回 pink-portrait.png 保
+  // 底——至少不会报错，视觉上回到最初状态。
+  const awakeFrame = captureAwakeLastFrameDataURL();
+  meAvatarImg.src = awakeFrame || 'assets/avatar/pink-portrait.png';
 
   // returned 状态已在 triggerReturn 里加好，这里只处理归位特效
   meAvatar.classList.remove('pop-in', 'r3-land');
@@ -674,6 +726,9 @@ function resetToSleeping({ closeAfter = true } = {}) {
 document.getElementById('resetBtn').addEventListener('click', () => {
   meAvatarImg.src = 'assets/avatar/pink-portrait.png';
   meAvatar.classList.remove('pop-in', 'r3-land', 'returned');
+  // 清掉"醒着末帧"dataURL 缓存：虽然 APNG 内容不变、重抓也是同一张图，
+  // 但清掉能保证下次归位时一定是"这一次播完的帧"，语义更干净。
+  cachedAwakeFrameDataURL = null;
   resetToSleeping({ closeAfter: true });
 });
 
