@@ -1,0 +1,233 @@
+/* ============================================================
+   polish.css —— 基于 ui-ux-pro-max skill 规则集做的页面效果优化
+   ----------------------------------------------------------------
+   本文件不改动任何原有 CSS 的结构与含义，全部以"覆盖/补充"方式生效。
+   按规则优先级组织：
+     1. Accessibility / Reduced motion（最关键，不可省）
+     2. Touch & Interaction：cursor-pointer / 触达面积 / focus-visible
+     3. Animation：transition timing/easing 收敛、按压反馈统一
+     4. Typography：层级和呼吸感细调
+     5. 视觉细节：阴影、对比、间距
+   ============================================================ */
+
+
+/* ============================================================
+   1. 尊重系统的 reduced-motion 偏好（CRITICAL · ux: reduced-motion）
+   --------------------------------------------------------------
+   当前项目动效非常多（halo / orbit / countdown / lightbeam / shake ...）
+   开启系统"减少动态效果"后，这些循环动画会显得攻击性很强，必须降级。
+   策略：
+     - 把所有非必要动画时长收到 0.01ms（等同于关闭循环动效）
+     - 但保留入场/反馈类的 transition（用户操作的反馈不能丢）
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.12s !important;
+    scroll-behavior: auto !important;
+  }
+  /* 但是用户主动操作产生的反馈（press/tap/slide/save 弹窗）保留较短的过渡，
+     所以上面用 0.12s 而不是 0，让 :active/:hover 还是有微小反馈。 */
+}
+
+
+/* ============================================================
+   2. Touch & Interaction（CRITICAL）
+   ============================================================ */
+
+/* 2.1 cursor-pointer · 所有可点元素都要明确告诉用户"我可以点"
+   原代码里 .opt / .tab / .ic 等没有 cursor:pointer，鼠标在桌面预览时是默认箭头。 */
+.opt,
+.tabbar .tab,
+.navbar .right-icons .ic,
+.navbar .me-avatar,
+.tab,
+.btn,
+.console-actions .btn {
+  cursor: pointer;
+}
+
+/* 2.2 关闭按钮放大到接近 44px 触达区（原 32×32 偏小）
+   skill 规则：touch-target-size minimum 44×44。这里给 36×36 + padding 让命中区≥44。 */
+.sheet .sheet-close {
+  width: 36px; height: 36px;
+  /* 通过 negative offset 把 hit-box 撑到 44+，不影响视觉 */
+  outline-offset: 2px;
+}
+.sheet .sheet-close::before {
+  /* 隐形 hit area，扩到 44×44，方便手指点中 */
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+}
+
+/* 2.3 focus-visible · 键盘导航/无障碍焦点环
+   原代码所有按钮 outline 都被默认浏览器样式管控，键盘 tab 上去几乎看不到聚焦。
+   只对 :focus-visible 加（不影响鼠标点击的"虚框"问题）。 */
+.btn:focus-visible,
+.opt:focus-visible,
+.sheet .sheet-close:focus-visible,
+.press-btn:focus-visible,
+.tap-btn:focus-visible,
+.shake-btn:focus-visible,
+.voice-btn:focus-visible,
+.slide-track:focus-visible,
+.save-row .btn:focus-visible,
+.navbar .me-avatar:focus-visible {
+  outline: 2px solid #2B6CFF;
+  outline-offset: 3px;
+  border-radius: 12px;
+}
+/* 圆形元素的 focus 环也要圆 */
+.sheet .sheet-close:focus-visible,
+.navbar .me-avatar:focus-visible {
+  border-radius: 50%;
+}
+
+/* 2.4 hover 反馈统一 —— 控制面板 .opt 之前只有 border 变色，太弱，加微阴影
+   注意：保持原 `.opt:hover { transform: translateY(-1px) }` 的位移效果不变，
+   只补一个柔阴影提升"被点亮"的层次感。 */
+.opt:hover {
+  box-shadow: 0 4px 14px rgba(43, 108, 255, .10);
+}
+.opt:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(43, 108, 255, .12);
+}
+
+
+/* ============================================================
+   3. Animation · 统一过渡节奏
+   skill 规则：duration-timing 150-300ms for micro-interactions
+   ============================================================ */
+
+/* 3.1 控制面板按钮的 transition 原是 .15s（偏快、有"啪"的感觉）
+   收到 .2s + 标准 cubic-bezier，更柔和一致 */
+.btn {
+  transition: background .2s cubic-bezier(.2,.8,.2,1),
+              color .2s cubic-bezier(.2,.8,.2,1),
+              border-color .2s cubic-bezier(.2,.8,.2,1),
+              box-shadow .2s cubic-bezier(.2,.8,.2,1),
+              transform .12s ease;
+}
+.btn:active { transform: scale(.97); }
+
+/* 3.2 唤醒按钮的 :active 反馈 —— 原本只有 transform: scale(.96/.98)，
+   补一点 box-shadow 的"按下"效果（按下时阴影变小、向下贴近"地面"） */
+.press-btn:active,
+.tap-btn:active,
+.shake-btn:active,
+.voice-btn:active {
+  box-shadow: 0 4px 10px rgba(20, 30, 60, .18);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+
+/* 3.3 me-avatar 入口微 hover 反馈（桌面预览时） */
+.navbar .me-avatar:hover {
+  filter: brightness(1.04) drop-shadow(0 2px 8px rgba(43,108,255,.18));
+  transition: filter .25s ease;
+}
+
+
+/* ============================================================
+   4. Typography · 文案层级 & 呼吸感细调
+   skill 规则：line-height 1.5-1.75、字重不要全堆 700
+   ============================================================ */
+
+/* 4.1 greeting：原 700 字重 + 22px 偏厚重，
+   降到 650 + letter-spacing 微收，更轻盈、更像"打招呼"的口吻 */
+.sheet .sheet-head .greeting {
+  font-weight: 650;
+  letter-spacing: .2px;
+  /* 留出更稳的视觉锚点：与下一行间距小幅增加，避免黏在一起 */
+  margin-bottom: 8px;
+}
+
+/* 4.2 title：行高从 1.5 提到 1.55，14px 中文行距更舒展 */
+.sheet .sheet-head .title {
+  line-height: 1.55;
+  /* 主张行作为"叙事主轴"，颜色再清晰一点点（原 .82 → .88） */
+  color: rgba(26, 37, 64, .88);
+}
+
+/* 4.3 subtitle：行高 1.55，颜色稍稍提亮一点防止糊掉
+   原 .48 灰度在浅蓝背景上对比度刚好踩在 a11y 边界；提到 .58 更稳，
+   且依旧明显弱于 title。 */
+.sheet .sheet-head .subtitle {
+  line-height: 1.6;
+  color: rgba(26, 37, 64, .58);
+  margin-top: 6px;
+}
+
+
+/* ============================================================
+   5. 细节质感
+   ============================================================ */
+
+/* 5.1 半屏的顶部高光带 —— 原 sheet 顶部直接是渐变白底，
+   加一道极细的内嵌高光，让"卡片掀起来"的物理感更足 */
+.sheet {
+  box-shadow:
+    0 -8px 24px rgba(20, 30, 60, .08),
+    inset 0 1px 0 rgba(255, 255, 255, .9);
+}
+
+/* 5.2 sheet 顶部加一个 18px 的"抓手"小横条（drag handle）—— 移动端的视觉惯例，
+   告诉用户"这是一个可下拉的半屏"。不参与交互，纯视觉。 */
+.sheet::before {
+  content: "";
+  position: absolute;
+  left: 50%; top: 8px;
+  transform: translateX(-50%);
+  width: 36px; height: 4px;
+  border-radius: 2px;
+  background: rgba(26, 37, 64, .14);
+  z-index: 11;
+  pointer-events: none;
+}
+
+/* 5.3 关闭按钮位置避开 drag handle */
+.sheet .sheet-close {
+  top: 16px;
+}
+
+/* 5.4 控制面板的 .console 标题行：序号圈与文字 baseline 对齐微调
+   原代码 num 是 line-height:20 + h2 是 15px 默认行高，会有 1px 错位 */
+.console h2 {
+  display: flex; align-items: center; line-height: 1.4;
+}
+.console h2 .num {
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+/* 5.5 .opt 内部信息密度：title 与 desc 间距 2px → 4px，更易读 */
+.opt {
+  gap: 4px;
+}
+
+/* 5.6 navbar 我的头像：active 态下视觉反馈（按下时轻微缩小） */
+.navbar .me-avatar:active {
+  transform: scale(.96);
+  transition: transform .12s ease;
+}
+
+/* 5.7 状态栏字距统一（原 17px 系统字默认字距偏宽，9:41 看起来"散"） */
+.statusbar { letter-spacing: -.2px; }
+
+
+/* ============================================================
+   6. 兜底：键盘可达性
+   ============================================================ */
+
+/* 让原本不是 button 的"卡片型可点击元素"在键盘 tab 时也能聚焦
+   （JS 没改，先用 CSS 配合 tabindex 做视觉准备；如果想真生效，
+   后续可在 main.js 给 .opt / .me-avatar 加 tabindex="0" + role="button"） */
+.opt[tabindex],
+.navbar .me-avatar[tabindex] {
+  outline: none;
+}
