@@ -454,8 +454,9 @@ function doAwakeReveal() {
     body.classList.remove('flashing');
   }, 380);
 
-  // 显示台词
-  const text = SPEECHES[Math.floor(Math.random() * SPEECHES.length)];
+  // 显示台词：优先用用户保存的 Slogan，否则随机
+  const savedSlogan = (localStorage.getItem('qqxiu_slogan') || '').trim();
+  const text = savedSlogan || SPEECHES[Math.floor(Math.random() * SPEECHES.length)];
   speech.textContent = text;
   stageArea.classList.add('awake');
 
@@ -598,4 +599,200 @@ document.getElementById('resetBtn').addEventListener('click', () => {
   meAvatarImg.src = 'assets/avatar/body-closed.png';
   meAvatar.classList.remove('pop-in', 'r3-land', 'returned');
   resetToSleeping({ closeAfter: true });
+});
+
+// ============================================================
+// Slogan 气泡：可编辑文案 + 切换音色 + 播放语音（接 tts-server）
+// ============================================================
+//
+// 设计要点：
+// 1. 文案与音色用 localStorage 持久化，刷新后仍是用户的"我的 Slogan"。
+// 2. 工具条 hover 气泡时浮现；编辑/选音色时常驻（避免消失）。
+// 3. TTS 接口默认走本机 tts_server.py（http://localhost:8766/tts），
+//    失败时回退到同源 /tts（Vercel 部署路径）。播放期间按钮显示 loading。
+// 4. 编辑：contenteditable + 回车保存 + Esc 取消 + 失焦保存；
+//    粘贴时去掉富文本、限制最长 30 字。
+// ============================================================
+
+const SLOGAN_KEY = 'qqxiu_slogan';
+const VOICE_KEY  = 'qqxiu_voice';
+const VOICE_LABELS = {
+  'zh-CN-XiaoxiaoNeural': '晓晓',
+  'zh-CN-XiaoyiNeural':   '晓伊',
+  'zh-CN-YunxiNeural':    '云希',
+  'zh-CN-YunyangNeural':  '云扬',
+  'zh-CN-YunjianNeural':  '云健',
+};
+// TTS 服务地址候选：本地优先，Vercel 兜底
+const TTS_ENDPOINTS = [
+  'http://localhost:8766/tts',
+  '/tts',
+];
+const SLOGAN_MAX_LEN = 30;
+
+const speechWrap     = document.getElementById('speechWrap');
+const speechTools    = document.getElementById('speechTools');
+const speechEditBtn  = document.getElementById('speechEditBtn');
+const speechVoiceBtn = document.getElementById('speechVoiceBtn');
+const speechVoiceMenu= document.getElementById('speechVoiceMenu');
+const speechVoiceLabel = document.getElementById('speechVoiceLabel');
+const speechPlayBtn  = document.getElementById('speechPlayBtn');
+
+// ---- 当前音色（从 localStorage 读，没有则默认晓晓） ----
+let currentVoice = localStorage.getItem(VOICE_KEY) || 'zh-CN-XiaoxiaoNeural';
+function refreshVoiceUI() {
+  speechVoiceLabel.textContent = VOICE_LABELS[currentVoice] || '音色';
+  speechVoiceMenu.querySelectorAll('button').forEach(b => {
+    b.classList.toggle('active', b.dataset.voice === currentVoice);
+  });
+}
+refreshVoiceUI();
+
+// ---- 编辑：进入 / 保存 / 取消 ----
+function enterEditMode() {
+  speech.classList.add('editing');
+  speech.contentEditable = 'true';
+  speech.focus();
+  // 选中全部文字，方便直接覆盖
+  const range = document.createRange();
+  range.selectNodeContents(speech);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+function exitEditMode(save) {
+  if (!speech.classList.contains('editing')) return;
+  speech.classList.remove('editing');
+  speech.contentEditable = 'false';
+  if (save) {
+    let text = (speech.textContent || '').replace(/\s+/g, ' ').trim();
+    if (text.length > SLOGAN_MAX_LEN) text = text.slice(0, SLOGAN_MAX_LEN);
+    if (!text) text = 'Hi，初次见面~'; // 空内容兜底
+    speech.textContent = text;
+    localStorage.setItem(SLOGAN_KEY, text);
+  } else {
+    // 取消：还原为存档值
+    const saved = localStorage.getItem(SLOGAN_KEY);
+    if (saved) speech.textContent = saved;
+  }
+}
+speechEditBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  enterEditMode();
+});
+// 直接点击气泡也进入编辑（仅在唤醒后，由 .speech-wrap 显示控制）
+speech.addEventListener('click', () => {
+  if (speech.classList.contains('editing')) return;
+  enterEditMode();
+});
+speech.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    speech.blur(); // 触发 blur → 保存
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    exitEditMode(false);
+    speech.blur();
+  }
+});
+speech.addEventListener('blur', () => exitEditMode(true));
+// 粘贴时去掉富文本格式，限长
+speech.addEventListener('paste', (e) => {
+  e.preventDefault();
+  const text = (e.clipboardData || window.clipboardData).getData('text') || '';
+  const clean = text.replace(/\s+/g, ' ').slice(0, SLOGAN_MAX_LEN);
+  document.execCommand('insertText', false, clean);
+});
+
+// ---- 音色下拉 ----
+speechVoiceBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  speechWrap.classList.toggle('voice-open');
+});
+speechVoiceMenu.addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-voice]');
+  if (!btn) return;
+  e.stopPropagation();
+  currentVoice = btn.dataset.voice;
+  localStorage.setItem(VOICE_KEY, currentVoice);
+  refreshVoiceUI();
+  speechWrap.classList.remove('voice-open');
+  // 切换音色后立即试听
+  playSlogan();
+});
+// 点别处关掉下拉
+document.addEventListener('click', (e) => {
+  if (!speechWrap.contains(e.target)) {
+    speechWrap.classList.remove('voice-open');
+  }
+});
+
+// ---- 播放 TTS ----
+let currentAudio = null;
+
+async function fetchTTS(text, voice) {
+  // 依次尝试候选地址，第一个成功的返回
+  let lastErr = null;
+  for (const base of TTS_ENDPOINTS) {
+    try {
+      const url = `${base}?text=${encodeURIComponent(text)}&voice=${encodeURIComponent(voice)}`;
+      const res = await fetch(url, { method: 'GET' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      if (!blob || blob.size < 200) throw new Error('empty audio');
+      return URL.createObjectURL(blob);
+    } catch (err) {
+      lastErr = err;
+      // 继续下一个
+    }
+  }
+  throw lastErr || new Error('no tts endpoint reachable');
+}
+
+async function playSlogan() {
+  const text = (speech.textContent || '').trim();
+  if (!text) return;
+  // 已有音频在播 → 停掉重播
+  if (currentAudio) {
+    try { currentAudio.pause(); } catch (e) {}
+    currentAudio = null;
+  }
+  speechPlayBtn.classList.add('loading');
+  speechPlayBtn.classList.remove('playing');
+  try {
+    const objectUrl = await fetchTTS(text, currentVoice);
+    const audio = new Audio(objectUrl);
+    currentAudio = audio;
+    audio.addEventListener('playing', () => {
+      speechPlayBtn.classList.remove('loading');
+      speechPlayBtn.classList.add('playing');
+    });
+    audio.addEventListener('ended', () => {
+      speechPlayBtn.classList.remove('loading', 'playing');
+      URL.revokeObjectURL(objectUrl);
+      currentAudio = null;
+    });
+    audio.addEventListener('error', () => {
+      speechPlayBtn.classList.remove('loading', 'playing');
+      URL.revokeObjectURL(objectUrl);
+      currentAudio = null;
+      alert('音频播放失败，请检查浏览器音频权限');
+    });
+    await audio.play();
+  } catch (err) {
+    speechPlayBtn.classList.remove('loading', 'playing');
+    console.error('[TTS]', err);
+    alert(
+      '语音合成失败 🥲\n\n' +
+      '请先启动本地 TTS 服务：\n' +
+      '  cd ' + (location.pathname.includes('avatar') ? '"avatar creation"' : '项目目录') + '\n' +
+      '  pip install edge-tts\n' +
+      '  python tts_server.py\n\n' +
+      '服务会监听 http://localhost:8766/tts'
+    );
+  }
+}
+speechPlayBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  playSlogan();
 });

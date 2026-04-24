@@ -53,6 +53,27 @@ npx serve .
 | W6 | 形象正式登场 |
 | W7 | 收束至主页态 |
 
+## Slogan 气泡 + TTS 语音
+
+唤醒成功后，QQ 秀右上方的对话气泡支持：
+
+- **编辑文案**：点击气泡（或工具条✎）即可输入自己的 Slogan，回车保存，Esc 取消，最长 30 字。文案会写入 `localStorage('qqxiu_slogan')`，下次唤醒沿用。
+- **切换音色**：5 种 Edge TTS 中文音色（晓晓 / 晓伊 / 云希 / 云扬 / 云健），切换后自动试听，记忆到 `localStorage('qqxiu_voice')`。
+- **播放语音**：点 ▶，调用本地 TTS 服务把当前 Slogan 读出来。
+
+### 启动本地 TTS 服务
+
+```bash
+# 1. 安装依赖
+pip install edge-tts
+
+# 2. 启动服务（端口 8766）
+python tts_server.py
+```
+
+服务监听 `http://localhost:8766/tts`，前端会自动调用。
+若需要部署到线上，可用 `tts-server/` 目录下的 Vercel 配置（`vercel.json` + `api/tts.py`），前端会优先尝试本地端口，失败时回退到同源 `/tts`。
+
 ## License
 
 MIT

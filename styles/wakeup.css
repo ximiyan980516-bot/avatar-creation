@@ -305,40 +305,167 @@
 /* 角色台词气泡：紧贴人物右侧（人物在 stage 居中，右边缘 ≈ 中心+90px），
    气泡左尖几乎挨着人物头肩位置，更像"从他嘴边冒出来"
    位置上移到偏头顶位置，形成"从头顶轻轻飘出"的对话感
-   文案保持简短（如 "Hi，初次见面~"），不要遮挡形象 */
-.speech {
+   ────────────────────────────────────────────
+   结构升级：外层 .speech-wrap 负责【绝对定位 + 入场动效】，
+   内层 .speech 负责【视觉气泡 + contenteditable 编辑】，
+   .speech-tools 是悬浮在气泡上方的迷你工具条（编辑/音色/播放）。 */
+.speech-wrap {
   position: absolute;
-  /* 用 left 锚定，让气泡的左边缘距 stage 中心约 86px（人物半宽 90px - 一点重叠让尾尖贴肩） */
+  /* 让 wrap 的左边缘距 stage 中心约 86px（人物半宽 90px - 一点重叠让尾尖贴肩） */
   left: calc(50% + 86px);
   top: 18%;
+  /* 给工具条留垂直空间：工具条悬浮在气泡上方 28px 处 */
   transform: translateY(-6px) scale(.85);
   transform-origin: left center;
+  opacity: 0;
+  transition: all .35s ease;
+  /* 不接收点击，由内部 .speech / .speech-tools 各自接管 */
+  pointer-events: none;
+  z-index: 5;
+}
+.body.awake ~ .speech-wrap,
+.stage-area.awake .speech-wrap {
+  opacity: 1; transform: translateY(0) scale(1);
+}
+
+/* 气泡本体 */
+.speech {
+  position: relative;
+  display: inline-block;
   background: #fff;
   padding: 7px 12px;
-  /* 圆角镜像：尾尖在左下 → 把左下角收成 4px，其它仍是 14px */
+  /* 圆角：尾尖在左下 → 左下角收成 4px */
   border-radius: 14px 14px 14px 4px;
   border-bottom-left-radius: 4px;
   border-bottom-right-radius: 14px;
   box-shadow: 0 6px 16px rgba(20,30,60,.12);
   font-size: 13px; color: #1a2540; font-weight: 500;
-  opacity: 0; transition: all .35s ease;
   white-space: nowrap;
-  max-width: 42%;
-  pointer-events: none;
+  max-width: 220px;
+  /* 唤醒后允许点击编辑 */
+  pointer-events: auto;
+  cursor: text;
+  outline: none;
+  /* 编辑时给一个柔和的呼吸边框 */
+  transition: box-shadow .2s ease, transform .2s ease;
+}
+.speech:hover {
+  box-shadow: 0 8px 20px rgba(20,30,60,.16);
 }
 .speech::after {
   content: ""; position: absolute;
-  /* 尾尖移到左侧，朝左指向人物 */
+  /* 尾尖在左侧，朝左指向人物 */
   left: -4px; top: 50%;
   margin-top: -4px;
   transform: rotate(45deg);
   width: 8px; height: 8px; background: #fff;
-  /* 阴影方向同步翻转，保持立体感正确 */
   box-shadow: -2px 2px 4px rgba(20,30,60,.04);
 }
-.body.awake ~ .speech,
-.stage-area.awake .speech {
-  opacity: 1; transform: translateY(0) scale(1);
+/* 编辑态：高亮边框 + 允许换行/光标 */
+.speech.editing {
+  cursor: text;
+  white-space: normal;
+  box-shadow: 0 0 0 2px rgba(58,118,255,.45), 0 8px 22px rgba(20,30,60,.18);
+}
+/* 空内容时显示 placeholder */
+.speech:empty::before {
+  content: attr(data-placeholder);
+  color: #9aa3b8;
+  font-weight: 400;
+}
+
+/* ─────────── 迷你工具条 ───────────
+   悬浮在气泡上方，平时隐藏；hover 气泡 wrap 时显示，
+   点击编辑按钮后保持显示直到失焦。 */
+.speech-tools {
+  position: absolute;
+  left: 0; bottom: calc(100% + 6px);
+  display: flex; align-items: center; gap: 4px;
+  padding: 4px;
+  background: rgba(26,37,64,.92);
+  backdrop-filter: blur(8px);
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(20,30,60,.25);
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity .2s ease, transform .2s ease;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 6;
+}
+/* 悬浮气泡 / 编辑中 / 工具条菜单展开 时显示 */
+.speech-wrap:hover .speech-tools,
+.speech-wrap.tools-open .speech-tools,
+.speech.editing ~ .speech-tools,
+.speech-wrap:has(.speech.editing) .speech-tools {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.st-btn {
+  display: inline-flex; align-items: center; gap: 3px;
+  height: 22px; padding: 0 7px;
+  background: transparent;
+  border: 0;
+  color: #fff;
+  font-size: 11px; font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background .15s ease;
+}
+.st-btn:hover { background: rgba(255,255,255,.14); }
+.st-btn:active { background: rgba(255,255,255,.22); }
+.st-btn svg { display: block; }
+
+/* 音色按钮（含下拉） */
+.st-voice-wrap { position: relative; }
+.st-voice-label { font-size: 11px; }
+.st-voice-menu {
+  position: absolute;
+  left: 50%; top: calc(100% + 6px);
+  transform: translateX(-50%) translateY(-4px);
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgba(20,30,60,.22);
+  padding: 4px;
+  display: flex; flex-direction: column; gap: 2px;
+  min-width: 140px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .18s ease, transform .18s ease;
+  z-index: 10;
+}
+.speech-wrap.voice-open .st-voice-menu {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+.st-voice-menu button {
+  background: transparent; border: 0;
+  text-align: left;
+  padding: 7px 10px;
+  font-size: 12px; color: #1a2540;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background .15s ease;
+}
+.st-voice-menu button:hover { background: #f1f4fb; }
+.st-voice-menu button.active {
+  background: rgba(58,118,255,.10);
+  color: #3a76ff; font-weight: 600;
+}
+
+/* 播放按钮的 loading 切换 */
+.st-play .ic-loading { display: none; }
+.st-play.loading .ic-play { display: none; }
+.st-play.loading .ic-loading {
+  display: block;
+  animation: st-spin .8s linear infinite;
+}
+.st-play.playing { background: rgba(58,118,255,.35); }
+@keyframes st-spin {
+  to { transform: rotate(360deg); }
 }
 
 /* 底部操作区
