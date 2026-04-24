@@ -120,34 +120,40 @@ html {
    不改 sheet 自身圆角（保持原作者节奏），只调整内部按钮。
    ============================================================ */
 
-/* 2.1 sheet 顶部圆角是 28px（来自 wakeup.css），保留
-   按钮在 sheet 里距离边缘约 16-20px，按钮自身用 calc 让圆角同心 */
+/* 2.1 sheet 内四个唤醒按钮：统一实蓝实心（用户要求「全都改成实蓝」）
+   原 wakeup.css 里 tap=粉、shake=橙、voice=绿、press=蓝，
+   按 soft-skill "only one accent" 原则，统一到 brand-standard。
+   用 !important 覆盖原文件的 linear-gradient 与各自染色阴影。 */
 .press-btn,
 .tap-btn,
 .shake-btn,
 .voice-btn {
-  /* 原本是 999px 全圆胶囊，已经是同心曲线的极致表达，保留
-     但补一层 inset 内高光让它"立起来" */
+  background: var(--brand-standard) !important;   /* 实蓝实心，不用渐变 */
+  color: #fff !important;
   box-shadow:
     0 1px 0 rgba(255, 255, 255, .25) inset,
-    0 8px 20px rgba(43, 108, 255, .28),
-    0 1px 2px rgba(43, 108, 255, .12);
+    0 8px 20px rgba(0, 153, 255, .32),
+    0 1px 2px rgba(0, 153, 255, .14) !important;
 }
 
-/* 2.2 voice 按钮特殊染色（绿） */
-.voice-btn {
+/* 2.2 录音中 / 激活态 保持蓝，但加深一点作为状态反馈 */
+.voice-btn.recording,
+.press-btn.pressing,
+.tap-btn.tapping,
+.shake-btn.shaking {
+  background: #0088E5 !important;   /* 实蓝加深 */
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, .25) inset,
-    0 8px 20px rgba(7, 193, 96, .28),
-    0 1px 2px rgba(7, 193, 96, .12);
+    0 1px 0 rgba(255, 255, 255, .3) inset,
+    0 10px 24px rgba(0, 153, 255, .42),
+    0 1px 2px rgba(0, 153, 255, .18) !important;
 }
 
-/* 2.3 shake 按钮特殊染色（橙） */
-.shake-btn {
+/* 2.3 press-btn.done（长按满格成功）原本是绿，统一到蓝家族深色 */
+.press-btn.done {
+  background: #0077CC !important;
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, .25) inset,
-    0 8px 20px rgba(255, 159, 67, .28),
-    0 1px 2px rgba(255, 159, 67, .12);
+    0 1px 0 rgba(255, 255, 255, .3) inset,
+    0 10px 26px rgba(0, 119, 204, .45) !important;
 }
 
 /* 2.4 slide track：胶囊原本无 inset 高光，加上 */
