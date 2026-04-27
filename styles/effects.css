@@ -69,10 +69,16 @@
   100% { transform: scale(2); opacity: 0; }
 }
 
-/* ---------- 3. 探头招呼（合并版：探头摇摆 + 头顶声波短线）
+/* ---------- 3. 探头招呼（合并版：探头摇摆 + 头顶声波弧线）
      - 角色每隔几秒探头摇摆一下
-     - 头顶冒出 3 根短声波线，避开右侧昵称区域
-   ---------- */
+     - 头顶冒出 3 道「半弧声波」从小到大依次扩散 + 小圆点作为声源起点
+   用户反馈："现在看起来像乱码"——旧方案用 3 根短斜杠（中间 + ±32° 两根）
+   同时闪烁，在 40×16 小盒子里既没有扩散运动也没有层次，视觉上就是
+   "==" / "/\\" 这种字符符号，脑补不出"声波"。
+   这版改成漫画里"叫声"的经典图形：半圆弧（border-top 的上半椭圆）+
+   依次 delay 放大扩散，最底下一道最小最快、越外越晚越大越淡。
+   同时在声源位置加一个小圆点（.fx-outer::before）代表"嘴在发声"的
+   起点，让三道弧"从点里扩出来"的因果关系肉眼可读。 ---------- */
 [data-effect="3"] img {
   animation: fx3-shake 3.2s ease-in-out infinite;
   transform-origin: 50% 90%;
@@ -84,39 +90,76 @@
   88%  { transform: rotate(-6deg); }
   94%  { transform: rotate(4deg); }
 }
-/* 借用 fx-outer 里现成的 5 个 <i> 元素，只显示前 3 根（display 由顶部统一规则控制），
-   并把它们整体定位到头像「正上方」，避免与右侧昵称重叠 */
+/* 把容器放大到 28×20，放得下三道弧 + 声源点；整体坐到头像正上方 */
 [data-effect="3"] .fx-outer {
-  width: 40px; height: 16px;
-  /* 把整个声波容器移到头像上方 */
+  width: 28px; height: 20px;
   top: -2px;
   transform: translate(-50%, -100%);
 }
+/* 声源小圆点（代表"张嘴发声"的位置）——贴在容器底部中央、头顶之上。
+   不跟随弧的扩散动画，但做轻微的呼吸（opacity 0.4 → 1），暗示"正在叫"。 */
+[data-effect="3"] .fx-outer::before {
+  content: "";
+  position: absolute;
+  left: 50%; bottom: -1px;
+  width: 4px; height: 4px;
+  margin-left: -2px;
+  border-radius: 50%;
+  background: #0099FF;
+  animation: fx3-dot 3.2s ease-in-out infinite;
+}
+@keyframes fx3-dot {
+  0%, 70%, 100% { opacity: .35; transform: scale(1); }
+  78%           { opacity: 1;    transform: scale(1.25); }
+}
+/* 三道同心半弧：用 border-top + border-radius 50%/100% 画上半椭圆。
+   每道 <i> 共享同一个 fx3-wave 动画（放大 + 淡出），靠 delay 形成"一道接
+   一道往外扩"的节奏。宽高先给 nth-child 按层级覆盖。 */
 [data-effect="3"] .fx-outer i {
   position: absolute;
-  width: 7px; height: 1.6px;
-  background: #0099FF; border-radius: 2px;
-  /* 与角色"探头摇摆"同步：摇摆瞬间冒出来 */
-  animation: fx3-wave 3.2s ease-in-out infinite;
+  left: 50%; bottom: 0;
+  border: 1.5px solid #0099FF;
+  border-bottom: 0;
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  background: transparent;
+  transform: translateX(-50%) scale(.3);
+  opacity: 0;
+  animation: fx3-wave 3.2s ease-out infinite;
+  pointer-events: none;
 }
+/* 最内：小弧，最早出现——与角色摇摆首帧对齐 */
 [data-effect="3"] .fx-outer i:nth-child(1) {
-  left: 50%; bottom: 2px;
-  transform: translateX(-50%) rotate(0deg);
-  width: 9px;
+  width: 10px; height: 5px;
+  animation-delay: 0s;
 }
+/* 中间：稍大，晚 0.12s */
 [data-effect="3"] .fx-outer i:nth-child(2) {
-  left: 22%; bottom: 6px;
-  transform: rotate(-32deg);
+  width: 16px; height: 8px;
   animation-delay: .12s;
+  opacity: .85; /* 作用域内的基础值，仍会被 keyframes 的 opacity 接管 */
 }
+/* 最外：最大最淡、再晚 0.24s，形成"扩散尾巴" */
 [data-effect="3"] .fx-outer i:nth-child(3) {
-  right: 22%; bottom: 6px;
-  transform: rotate(32deg);
-  animation-delay: .12s;
+  width: 22px; height: 11px;
+  border-width: 1.2px; /* 外圈略细，自然"消散" */
+  animation-delay: .24s;
 }
+/* 共用关键帧：在 76%~94% 区间完成一次"从小圆点旁边长出来→向外扩大→淡出"
+   这个叙事正好覆盖 fx3-shake 的摇摆段（76%~94%），视觉上同步成"她一歪头
+   就叫了一声"。opacity 从 0 快速起 0.9，再随 scale 放大同时淡回 0。 */
 @keyframes fx3-wave {
-  0%, 70%, 100% { opacity: 0; }
-  76%, 88%      { opacity: 1; }
+  0%, 70%, 100% {
+    opacity: 0;
+    transform: translateX(-50%) scale(.3);
+  }
+  76% {
+    opacity: .9;
+    transform: translateX(-50%) scale(.55);
+  }
+  94% {
+    opacity: 0;
+    transform: translateX(-50%) scale(1.1);
+  }
 }
 
 /* ---------- 4. 比心轻拍（替代原"漫画声波"，与方案 8 飘心做差异化）
