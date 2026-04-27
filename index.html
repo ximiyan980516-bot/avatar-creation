@@ -49,8 +49,10 @@
             <i></i><i></i><i></i><i></i><i></i>
             <!-- 星粒（fx5） -->
             <span></span><span></span><span></span>
-            <!-- ZZZ（fx7） -->
-            <em class="z">Z</em><em class="z">Z</em><em class="z">Z</em>
+            <!-- ZZZ（fx7）：单个节点承载完整 zzz.svg；后两个 <em> 槽位
+                 由 effects.css 用 :nth-child(n+2) 隐藏，保留只是为了不
+                 影响 HTML 里其它特效的兄弟选择器排布。 -->
+            <em class="z"></em><em class="z"></em><em class="z"></em>
             <!-- 爱心（fx8） -->
             <b class="h"></b><b class="h"></b><b class="h"></b>
             <!-- 挂件（fx9） -->

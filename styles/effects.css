@@ -209,24 +209,49 @@
   to { transform: rotate(360deg); }
 }
 
-/* ---------- 7. 睡眠 ZZZ ---------- */
+/* ---------- 7. 睡眠 ZZZ ----------
+   ──────────────────────────────────────────────────────────
+   设计意图（按 Figma 设计稿对齐）：
+     · 老版本是 3 个 <em>Z</em> 字符各自起飞，颜色 #6B8AFE，靠 font-size
+       梯度模拟"近大远小"。问题是字体在不同设备上字形/粗细不一致，
+       且和 Figma 给的 zzz 矢量图差距明显。
+     · Figma 的 zzz.svg 已经把三个倾斜 Z 整体画好（大小递减、统一
+       #0099FF），是一个完整的"睡眠气泡"图形——直接用它当背景，
+       视觉、间距、倾斜角都不会再走样。
+
+   实现：
+     · index.html 里的 <em class="z"> × 3 槽位保留（避免动其它特效），
+       只把第一个拿来做整体 zzz 图标的载体，后两个隐藏。
+     · 整个 zzz 走"缓缓上升 + 轻微左右摆 + 末尾淡出"的循环，比单个
+       字符各自起飞更接近"睡梦中飘出气泡"的语感。
+     · APNG 角色保留极轻微的 float（呼吸感），别盖掉睡眠气泡本身。 */
 [data-effect="7"] .fx-outer { width: 40px; height: 40px; pointer-events:none;}
 [data-effect="7"] .fx-outer .z {
-  position: absolute; right: -8px; top: -6px;
-  font-family: 'Comic Sans MS','SF Pro',sans-serif;
-  color: #6B8AFE; font-weight: 700; font-size: 13px;
-  animation: fx7-z 2.4s ease-in-out infinite;
+  /* 把 <em>Z</em> 改造成纯背景容器：清掉文字 */
+  position: absolute;
+  right: -14px; top: -16px;
+  width: 22px; height: 21px;       /* svg 原始 16×15 等比放大约 1.4× */
+  font-size: 0;                     /* 隐藏 <em> 里的 "Z" 文本 */
+  color: transparent;
+  background: url('../assets/icons/zzz.svg') center/contain no-repeat;
+  transform-origin: 50% 100%;
+  animation: fx7-zzz 2.6s ease-in-out infinite;
   opacity: 0;
 }
-[data-effect="7"] .fx-outer .z:nth-child(2){ animation-delay: .8s; font-size:11px; right: -2px; top:-12px;}
-[data-effect="7"] .fx-outer .z:nth-child(3){ animation-delay: 1.6s; font-size:9px;  right: 4px; top:-16px;}
+/* 后两个 <em> 槽位不再使用——整张 zzz 已是完整图形 */
+[data-effect="7"] .fx-outer .z:nth-child(n+2) { display: none; }
+
 [data-effect="7"] img {
   animation: fx7-float 3s ease-in-out infinite;
 }
-@keyframes fx7-z {
-  0%   { opacity: 0; transform: translate(0,0) scale(.8); }
-  30%  { opacity: 1; }
-  100% { opacity: 0; transform: translate(6px,-12px) scale(1.2); }
+
+/* zzz 整体上飘：起步从下方略缩放 → 中段最饱满 → 末尾继续上升并淡出，
+   横向加一点点 sway 让它更像浮在空气里的气泡。 */
+@keyframes fx7-zzz {
+  0%   { opacity: 0; transform: translate(0, 4px) scale(.85); }
+  20%  { opacity: 1; transform: translate(-1px, 0) scale(1); }
+  60%  { opacity: 1; transform: translate(2px, -8px) scale(1.05); }
+  100% { opacity: 0; transform: translate(-1px, -16px) scale(1.1); }
 }
 @keyframes fx7-float {
   0%,100% { transform: translateY(0); }
