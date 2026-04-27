@@ -193,26 +193,37 @@ html, body {
 .navbar .me-avatar.returned > img {
   border-radius: 12px;
   object-fit: contain;
-  /* 用户反馈链条：
-     1) "终点的图也要放大到 1.5 倍" → 曾给这里加 transform: scale(1.5)
-     2) "归位的形象偏下了 / 归位时静态头像也会变大"
-        这两个副作用都来自 scale(1.5)：
-        - 偏下：PNG 画布顶部本来就有透明留白，contain 后图像再被 1.5x
-          放大，头以锚点为轴外扩，视觉重心自然压到下半；无论 top/center/
-          bottom 哪种锚点都会出现"某一端偏空"。
-        - 静态头像变大：triggerReturn() 在飞行开始前就给 meAvatar 加
-          .returned（为了让飞行终点拿到正确的 44×54 几何），此时 navbar
-          里的原静态圆头像（pink-portrait.png）也立刻套上这个 scale(1.5)
-          规则——用户看到的就是"飞行还没开始，左上角头像先膨胀了一下"。
-     本轮决定：撤掉落位后的 scale，归位头像就按 44×54 槽位正常 contain
-     显示，配合 object-position: center top 让头顶贴容器顶——既没有"偏下"，
-     也不会在飞行前就把静态图放大。飞行体的 1.5x 放大仅保留"起飞瞬间"
-     的感觉（详见 wakeup.css 的 r1-fly），落位时 scale 回 1，与 navbar
-     这里的 1.0 对齐，无跳变。 */
+  /* 说明 —— 用户反馈演化到现在的最终形态：
+     · "归位到左上角时，全身形象需要放大到 1.5 倍"（本轮诉求）
+     · 同时必须避免之前踩过的两个坑：
+       (a) "归位时静态头像也会变大"：triggerReturn() 在飞行开始前就给
+           meAvatar 加 .returned（为了提前锁定 44×54 终点几何），所以如果把
+           scale(1.5) 写在 .returned > img 上，飞行还没开始，navbar 上的
+           原闭眼静态头像就会先膨胀一下。
+       (b) "归位的形象偏下了"：PNG 画布顶部本就有透明留白，scale 从中心
+           放大会把头压向下半。
+     解法：
+     · .returned 本身只负责\"容器形状 + 槽位几何\"（44×54 圆角方形），不带
+       scale——这样飞行途中 navbar 里的静态图仍然是 1.0 正常显示，不会预膨胀。
+     · 真正的 1.5x 放大放到 .returned.landed > img（见下）；.landed 类由
+       onFlyEnd() 在飞行结束瞬间才加上，与飞行 keyframe 终点的 scale(1.5)
+       无缝对齐。
+     · object-position: center top + transform-origin: center top（下面
+       的 .landed 规则里）让放大以顶边为锚点向下扩，头稳定在容器上沿，
+       缓解"偏下"感；navbar 无 overflow: hidden，溢出下半身自然落到 navbar
+       下方空白，不影响相邻元素布局。 */
   object-position: center top;
   border: 0;
   box-shadow: none;
   background: transparent;
+}
+/* 落位态专用：飞行结束瞬间由 JS 追加 .landed —— 此时才放大 1.5x，
+   保证"飞行前静态头像不预胀 + 落位后形象变大"两个需求同时满足。
+   transform-origin: center top 与 object-position: center top 配合，
+   放大时以容器顶边为锚点向下扩，头顶稳在 navbar 可视带内。 */
+.navbar .me-avatar.returned.landed > img {
+  transform: scale(1.5);
+  transform-origin: center top;
 }
 .navbar .me-info {
   margin-left: 10px; line-height: 1;

@@ -1292,16 +1292,21 @@
 .fly-body[data-return="1"].animate {
   animation: r1-fly 0.9s cubic-bezier(.4,0,.2,1) forwards;
 }
-/* 用户反馈迭代：
-   - 最初："形象归位的图放大到 1.5 倍" → 起飞 scale(1.5)，落位 scale(1)
+/* 用户反馈迭代（最新一轮）：
+   - 最初："形象归位的图放大到 1.5 倍" → 起飞 scale(1.5)、落位 scale(1)
    - 然后："终点的图也要放大到 1.5 倍" → 两端都 scale(1.5)
-   - 最新："归位的形象偏下了 / 归位时静态头像也会变大"
-     副作用暴露：落位 scale(1.5) 会把 navbar 里本不该放大的静态头像
-     也被 .returned 规则波及（triggerReturn 在飞行开始前就加 .returned），
-     以及图像锚点放大带来的"重心偏下"感。
-   因此回到"起飞 1.5 → 落位 1.0"的节奏：飞行出发瞬间仍有"形象大一下"的
-   仪式感，但落到 navbar 时 scale 归 1，与 common.css 里 .returned > img
-   的 scale(1) 对齐——无跳变、不偏下、静态头像飞行前也不会先胀大。 */
+   - 中间："归位的形象偏下了 / 归位时静态头像也会变大"
+     两个副作用来自把 scale(1.5) 写在 .returned > img 上（飞行前就生效）。
+   - 现在："归位到左上角时，全身形象需要放大到 1.5 倍"——仍然要落位 1.5x。
+   解法不再是"把 scale 写回 .returned > img"，而是改用 JS 在飞行结束瞬间
+   追加一个 .landed 类（见 partials/main.js onFlyEnd + common.css 里
+   .returned.landed > img），这样：
+     · 飞行途中 navbar 里的静态头像依旧 1.0，不会预膨胀（坑 a 解决）。
+     · 飞行体以 scale(1.5) 达到终点，navbar 同一帧被加上 .landed → 也是
+       1.5x，两者像素级对齐，animationend 时 opacity 切换无跳变。
+     · transform-origin: center top + object-position: center top 配合
+       让 1.5x 以顶边为锚点向下扩，缓解"偏下"感（坑 b 缓解）。
+   所以 keyframe 末尾重新回到 scale(1.5)。 */
 @keyframes r1-fly {
   0% {
     opacity: 1;
@@ -1311,7 +1316,7 @@
     opacity: 1;
     left: var(--end-x); top: var(--end-y);
     width: var(--end-w); height: var(--end-h);
-    transform: translate(-50%, -50%) scale(1);
+    transform: translate(-50%, -50%) scale(1.5);
   }
 }
 

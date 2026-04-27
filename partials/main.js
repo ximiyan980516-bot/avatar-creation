@@ -667,6 +667,17 @@ function onFlyEnd() {
   const awakeFrame = captureAwakeLastFrameDataURL();
   meAvatarImg.src = awakeFrame || 'assets/avatar/pink-portrait.png';
 
+  // 落位瞬间才加 .landed —— 配合 common.css 里
+  // .navbar .me-avatar.returned.landed > img { transform: scale(1.5) }
+  // 让归位后的全身形象放大到 1.5 倍。
+  // 为什么不把 scale 直接写在 .returned > img 上：triggerReturn() 在飞行
+  // 开始前就加了 .returned（提前锁定 44×54 终点几何），如果那时就带 1.5x，
+  // navbar 里原本的闭眼静态圆头像会在飞行还没开始的瞬间先膨胀一下（用户
+  // 此前反馈："归位时静态头像也会变大"）。把放大推迟到这里，就与飞行体
+  // keyframe 终点的 scale(1.5) 同帧对齐：飞行体 opacity → 0 的那一刻，
+  // navbar 里的图刚好被放大到 1.5x，无跳变。
+  meAvatar.classList.add('landed');
+
   // returned 状态已在 triggerReturn 里加好，这里只处理归位特效
   meAvatar.classList.remove('pop-in', 'r3-land');
   void meAvatar.offsetWidth;
@@ -725,7 +736,7 @@ function resetToSleeping({ closeAfter = true } = {}) {
 // ======= 重置整个流程（把顶部头像也换回静态入口） =======
 document.getElementById('resetBtn').addEventListener('click', () => {
   meAvatarImg.src = 'assets/avatar/pink-portrait.png';
-  meAvatar.classList.remove('pop-in', 'r3-land', 'returned');
+  meAvatar.classList.remove('pop-in', 'r3-land', 'returned', 'landed');
   // 清掉"醒着末帧"dataURL 缓存：虽然 APNG 内容不变、重抓也是同一张图，
   // 但清掉能保证下次归位时一定是"这一次播完的帧"，语义更干净。
   cachedAwakeFrameDataURL = null;
