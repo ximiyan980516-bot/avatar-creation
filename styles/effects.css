@@ -239,14 +239,17 @@
 }
 [data-effect="7"] .fx-outer .z {
   position: absolute;
-  /* svg 原 16×15，按 ~1.6× 放大到 26×24，更显眼 */
-  width: 26px; height: 24px;
-  right: -18px; top: -22px;
-  /* 让里面的 inline svg 自动撑满 */
+  /* 缩小尺寸：svg 原 16×15，按 ~1.1× 放到 18×17，更克制，像真正"飘"出来
+     的小气泡而不是盖在头像上的大招牌 */
+  width: 18px; height: 17px;
+  /* 起点：贴在头像右上角外侧一点点（后面动画会把它往右上推远） */
+  right: -10px; top: -6px;
   display: block;
   line-height: 0;
   font-size: 0;
-  transform-origin: 50% 100%;
+  /* 变换锚点放在左下角：这样 scale 放大时视觉上是"从左下原点向右上
+     膨胀"，配合 translate 形成"朝右上方向放大飞出"的感觉 */
+  transform-origin: 0% 100%;
   animation: fx7-zzz 2.6s ease-in-out infinite;
   opacity: 0;
 }
@@ -265,13 +268,16 @@
   animation: fx7-float 3s ease-in-out infinite;
 }
 
-/* zzz 整体上飘：起步从下方略缩放 → 中段最饱满 → 末尾继续上升并淡出。
-   不加横向 sway 了（svg 本身已经是斜的，再摇会显得抖）。 */
+/* zzz 朝右上方向边飘边放大：
+     · 起点：原位 + scale .6（小小一团，在头像右上角冒出来）
+     · 过程：translate(+x, -y) 一路往右上移动，同时 scale 递增
+     · 终点：飘到右上方向约 (+14px, -18px)、放大到 1.2、透明度归零
+   这就是「从头像右上角涌出、边飞边长大」的观感。 */
 @keyframes fx7-zzz {
-  0%   { opacity: 0; transform: translate(0, 6px) scale(.8); }
-  20%  { opacity: 1; transform: translate(0, 0) scale(1); }
-  65%  { opacity: 1; transform: translate(0, -8px) scale(1.05); }
-  100% { opacity: 0; transform: translate(0, -18px) scale(1.1); }
+  0%   { opacity: 0; transform: translate(0, 0) scale(.6); }
+  15%  { opacity: 1; transform: translate(2px, -3px) scale(.8); }
+  60%  { opacity: 1; transform: translate(9px, -12px) scale(1.05); }
+  100% { opacity: 0; transform: translate(14px, -18px) scale(1.2); }
 }
 @keyframes fx7-float {
   0%,100% { transform: translateY(0); }
