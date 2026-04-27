@@ -216,42 +216,62 @@
        梯度模拟"近大远小"。问题是字体在不同设备上字形/粗细不一致，
        且和 Figma 给的 zzz 矢量图差距明显。
      · Figma 的 zzz.svg 已经把三个倾斜 Z 整体画好（大小递减、统一
-       #0099FF），是一个完整的"睡眠气泡"图形——直接用它当背景，
-       视觉、间距、倾斜角都不会再走样。
+       #0099FF），是一个完整的"睡眠气泡"图形——直接 inline 进 HTML
+       的第一个 <em class="z"> 里，避免 CSS background-image 的路径/
+       缓存/初始绘制空隙。
 
    实现：
-     · index.html 里的 <em class="z"> × 3 槽位保留（避免动其它特效），
-       只把第一个拿来做整体 zzz 图标的载体，后两个隐藏。
-     · 整个 zzz 走"缓缓上升 + 轻微左右摆 + 末尾淡出"的循环，比单个
-       字符各自起飞更接近"睡梦中飘出气泡"的语感。
+     · 第一个 <em.z> 内嵌完整 svg；后两个槽位用 :nth-of-type 隐藏
+       （留着是为了不打乱 .fx-outer 子元素位置，影响其它特效）。
+     · zzz 整体走"缓缓上升 + 末尾淡出"的循环，比单字符各自起飞更
+       接近"睡梦中飘出气泡"的语感。
+     · 位置：me-avatar 是 40×40 圆头像；svg 锚到右上外侧约 (right:-18px,
+       top:-22px) —— 既不会贴到头像里，也不会撞到状态栏（navbar 在
+       y=44px，me-avatar 大约 y=52px，svg 顶约 y=30px，安全）。
      · APNG 角色保留极轻微的 float（呼吸感），别盖掉睡眠气泡本身。 */
-[data-effect="7"] .fx-outer { width: 40px; height: 40px; pointer-events:none;}
+[data-effect="7"] .fx-outer {
+  width: 40px; height: 40px;
+  pointer-events: none;
+  /* 关键：父容器必须 overflow visible，让 svg 飘出 40×40 框时不被裁。
+     .fx-outer 默认没设 overflow，浏览器默认 visible，但显式写出来
+     更稳，防止后续别人套规则 */
+  overflow: visible;
+}
 [data-effect="7"] .fx-outer .z {
-  /* 把 <em>Z</em> 改造成纯背景容器：清掉文字 */
   position: absolute;
-  right: -14px; top: -16px;
-  width: 22px; height: 21px;       /* svg 原始 16×15 等比放大约 1.4× */
-  font-size: 0;                     /* 隐藏 <em> 里的 "Z" 文本 */
-  color: transparent;
-  background: url('../assets/icons/zzz.svg') center/contain no-repeat;
+  /* svg 原 16×15，按 ~1.6× 放大到 26×24，更显眼 */
+  width: 26px; height: 24px;
+  right: -18px; top: -22px;
+  /* 让里面的 inline svg 自动撑满 */
+  display: block;
+  line-height: 0;
+  font-size: 0;
   transform-origin: 50% 100%;
   animation: fx7-zzz 2.6s ease-in-out infinite;
   opacity: 0;
 }
+[data-effect="7"] .fx-outer .z > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* svg 内部坐标已经设好填充色，浏览器渲染即可；这里给个保险，
+     防止外层继承的 currentColor/fill 影响 figma 颜色 */
+  overflow: visible;
+}
 /* 后两个 <em> 槽位不再使用——整张 zzz 已是完整图形 */
-[data-effect="7"] .fx-outer .z:nth-child(n+2) { display: none; }
+[data-effect="7"] .fx-outer .z:nth-of-type(n+2) { display: none; }
 
 [data-effect="7"] img {
   animation: fx7-float 3s ease-in-out infinite;
 }
 
-/* zzz 整体上飘：起步从下方略缩放 → 中段最饱满 → 末尾继续上升并淡出，
-   横向加一点点 sway 让它更像浮在空气里的气泡。 */
+/* zzz 整体上飘：起步从下方略缩放 → 中段最饱满 → 末尾继续上升并淡出。
+   不加横向 sway 了（svg 本身已经是斜的，再摇会显得抖）。 */
 @keyframes fx7-zzz {
-  0%   { opacity: 0; transform: translate(0, 4px) scale(.85); }
-  20%  { opacity: 1; transform: translate(-1px, 0) scale(1); }
-  60%  { opacity: 1; transform: translate(2px, -8px) scale(1.05); }
-  100% { opacity: 0; transform: translate(-1px, -16px) scale(1.1); }
+  0%   { opacity: 0; transform: translate(0, 6px) scale(.8); }
+  20%  { opacity: 1; transform: translate(0, 0) scale(1); }
+  65%  { opacity: 1; transform: translate(0, -8px) scale(1.05); }
+  100% { opacity: 0; transform: translate(0, -18px) scale(1.1); }
 }
 @keyframes fx7-float {
   0%,100% { transform: translateY(0); }
