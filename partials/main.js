@@ -7,8 +7,8 @@
 // 注意：id 保持不变（CSS/JS 里大量 [data-effect=\"3\"]、state.return===5 这类绑定都
 // 依赖 id，不能因为展示顺序调整而改动）。只调整数组元素顺序 + 在推荐项 title 前
 // 加 🌟，渲染器 renderOpts() 会按新顺序从上到下铺到选项面板里。
-// 默认选中项（state.effect=1 等）未改动——用户只要求\"推荐放前 + 标星\"，没要求
-// 改变初始方案，保守起见沿用原有默认行为。
+// 默认选中项：统一为各分类列表的第一项（即第一个 🌟 推荐项），让 demo 一打开
+// 就落在我们最想展示的方案上。见下方 state 初始化。
 const EFFECTS = [
   // —— 推荐：睡眠ZZZ → 呼吸光圈 → 头像抖动 ——
   { id: 7,  title: '🌟 睡眠 ZZZ',  desc: '"它在睡，叫醒它"，强联动' },
@@ -137,12 +137,14 @@ function renderOpts(containerId, list, currentId, onPick) {
 }
 
 // ======= 状态 =======
+// 默认值 = 各分类列表的第一项（与 EFFECTS/WAKES/TRIGGERS/RETURNS/SPEECH_EDITS
+// 数组的首元素对齐）。如果以后调整数组顺序，记得把这里的默认 id 同步。
 const state = {
-  effect: 1,
-  wake: 1,
-  trigger: 'press',
-  return: 1,
-  speechEdit: 'A',  // 语音编辑路径：A=就地弹出菜单 / B=全屏编辑页
+  effect: 7,              // EFFECTS[0] = 睡眠 ZZZ
+  wake: 1,                // WAKES[0]   = 温柔睁眼
+  trigger: 'click',       // TRIGGERS[0]= 单击唤醒
+  return: 1,              // RETURNS[0] = 直线收缩
+  speechEdit: 'A',        // SPEECH_EDITS[0] = 就地编辑（A）
   awake: false,
   pressing: false,
 };
