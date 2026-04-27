@@ -517,14 +517,20 @@ function doAwakeReveal() {
   // 空占 20px 留白。后续点"开启 QQ 秀"/"再看看"写入新文案时会移除这个类。
   sheetSubtitle.classList.add('is-hidden');
 
-  // t≈2.1s：APNG 播到一半左右时触发水波纹双圈爆发 —— 粉色描边一圈追一圈
-  // 往外扩散（参考入口的 halo-ring / effects.css 里的 fx2-ripple 风格），
+  // t≈3.1s：APNG 播到接近尾声时触发水波纹双圈爆发 —— 粉色/蓝色描边一圈追
+  // 一圈往外扩散（参考入口的 halo-ring / effects.css 里的 fx2-ripple 风格），
   // 与角色的 scale 回弹叠加，像"从身位炸开一圈圈光"。保持 1.4s 后再撤类，
   // 让 ::before 那一圈（delay 0.22s，1.1s 动画）也能完整走完。
+  // 用户反馈："形象生成后的蓝色光晕时机再后推 1s"——原触发在 2100ms（APNG
+  // 播到一半就爆），形象刚变出来就被光晕抢戏。后移到 3100ms，让角色先完成
+  // 大部分睁眼/入场动作，观众看清"她已经醒了"之后，再配合一圈蓝色水波纹
+  // 作为情绪点缀；此时 replayReveal（2700ms）已先飘入文案，顺序变成
+  // 文案→光晕→切按钮（5600ms），节奏更清晰。光晕持续 1.4s，4.5s 左右结束，
+  // 仍早于 awoken 切按钮，互不冲突。 */
   setTimeout(() => {
     body.classList.add('burst');
     setTimeout(() => body.classList.remove('burst'), 1400);
-  }, 2100);
+  }, 3100);
 
   // t≈2.7s：比之前提前约 2s 让文案飘入（title CSS delay 0.75s →
   // 真正可见约 t=3.45s）。APNG 还在播，但用户此时能同时感知到
