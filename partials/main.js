@@ -1210,6 +1210,12 @@ epTextarea.addEventListener('input', () => {
 });
 epCancelBtn.addEventListener('click', () => closeEditPage(false));
 epSaveBtn.addEventListener('click',   () => closeEditPage(true));
+// 点击上半屏的遮罩（.edit-page::before 区域）= 取消。
+// 遮罩是伪元素，点击命中会冒泡到 .edit-page 本身，且 e.target === editPage；
+// 而点到 header/body 内部的真实子节点时 e.target 是它们，不会触发关闭。
+editPage.addEventListener('click', (e) => {
+  if (e.target === editPage) closeEditPage(false);
+});
 // Esc 快速取消（桌面端预览便利）
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && editPage.classList.contains('show')) {

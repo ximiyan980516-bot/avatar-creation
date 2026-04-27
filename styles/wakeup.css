@@ -1530,25 +1530,60 @@
   50%      { box-shadow: 0 0 0 5px rgba(58,118,255,0);  }
 }
 
-/* 方案 B：全屏编辑页
-   位于 .phone 内部、绝对定位铺满；z-index 必须 > .sheet (51)，
-   这样打开时能盖住半屏；但不能 > .fly-body 的归位动画 z-index。
-   入场从下往上滑（和 sheet 类似，但更顶层），更像\"推开新页\"。
+/* 方案 B：半屏编辑页
+   ——————————————————————————————————————————————————————————
+   改动：从\"整屏铺满\"改为\"和 .sheet 一样的半屏（height:66%）\"，
+   从底部升起。顶部露出的上半屏可以看到 角色+气泡，这样用户能
+   明显感到\"在同一个页面上弹出了编辑层\"，而不是跳到完全独立的
+   新页。对比方案 A（气泡就地弹小菜单）层级更清晰。
+   ——————————————————————————————————————————————————————————
+   层级规划：
+     .sheet           z-index: 51（原值）
+     .edit-page       z-index: 62（盖过 sheet 以及 .pop-in 等）
+     .edit-page::before 遮罩铺满 .phone，z-index 用负值落在
+                      .edit-page 自己下方，但仍然在 .sheet 之上，
+                      点击半透明区域 = 取消（见 JS）。
+     .fly-body        归位动画发生前本页已关，不冲突。
+   形状：左右贴边 + 顶部圆角 24px（与 sheet 视觉呼应），底部
+   直接到 .phone 下沿——外壳本来就有 38px 圆角做裁切。
 */
 .edit-page {
   position: absolute;
-  left: 0; right: 0; top: 0; bottom: 0;
-  background: linear-gradient(180deg, #F5F7FC 0%, #FFFFFF 40%);
-  border-radius: 38px;  /* 贴合 .phone 自身圆角 */
-  z-index: 60;          /* > sheet(51)，< fly-body(通常更高，但归位时本页已关) */
+  left: 0; right: 0; bottom: 0;
+  height: 66%;
+  background: linear-gradient(180deg, #F5F7FC 0%, #FFFFFF 100%);
+  border-radius: 24px 24px 0 0;
+  z-index: 62;
   display: flex; flex-direction: column;
   transform: translateY(100%);
-  transition: transform .38s cubic-bezier(.22,.9,.32,1);
+  transition: transform .42s cubic-bezier(.22,.9,.32,1);
   pointer-events: none;
   overflow: hidden;
+  box-shadow:
+    0 -2px 6px rgba(20, 30, 60, .04),
+    0 -16px 48px rgba(20, 30, 60, .12);
+}
+/* 半透明遮罩：点击上半屏空白区 = 取消（由 JS 委托 click 触发）。
+   用 ::before 贴在 .edit-page 外侧，再用负的 top 让它覆盖到手机
+   顶部，完成上半屏遮蔽。pointer-events 和 .edit-page 一致，因此
+   只有 .show 时才能接收点击。*/
+.edit-page::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0;
+  top: -200%;      /* 向上延伸覆盖手机上半部分 */
+  bottom: 100%;    /* 底边正好停在编辑页顶部 */
+  background: rgba(12, 20, 40, .28);
+  opacity: 0;
+  transition: opacity .32s ease;
+  pointer-events: none;  /* 默认不接收点击 */
 }
 .edit-page.show {
   transform: translateY(0);
+  pointer-events: auto;
+}
+.edit-page.show::before {
+  opacity: 1;
   pointer-events: auto;
 }
 
