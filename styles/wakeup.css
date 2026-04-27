@@ -67,8 +67,21 @@
   z-index: 2;
 }
 /* 唤醒后：恢复较大的顶部间距，给放大后的 APNG 留呼吸空间。
-   .stage-area.awake 与 .sheet-head 都是 .sheet 的直接子节点
-   （stage-area 在前、sheet-head 在后），用一般同辈选择器 ~ 命中。 */
+   ──────────────────────────────────────────────────────────
+   触发条件：之前用的是 `.stage-area.awake ~ .sheet-head`，但
+   stage-area 上的 .awake 类被推迟到 APNG 播完后（5500ms）才加，
+   而 replayReveal 在 2700ms 就让文案飘入——结果文案先在 margin-top:-8px
+   位置出现，3 秒后 stage-area.awake 一加，整块文案瞬间下跳 40px，
+   就出现了用户反馈的「文案先从上方出现，再跳变回正确位置」的 bug。
+
+   修正：改用 `.sheet.awakening`（doAwakeReveal 起始就由 JS 加上），
+   保证文案飘入（t=2700ms）时 .sheet-head 已经处在最终的 margin-top:32px
+   位置上，整段飘入直接落在正确位置，不再有后续的位置跳变。
+   保留原来的 `.stage-area.awake ~ .sheet-head` 作为兜底，避免极端
+   时序下漏切。transition 也补上，给 0→awake 这一瞬的切换一个柔和的
+   过渡，避免任何极端时序下的硬跳。 */
+.sheet .sheet-head { transition: margin-top .35s ease; }
+.sheet.awakening .sheet-head,
 .sheet .stage-area.awake ~ .sheet-head {
   margin-top: 32px;
 }

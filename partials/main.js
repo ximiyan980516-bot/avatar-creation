@@ -502,6 +502,12 @@ function doAwakeReveal() {
   // 感觉"按钮没反应"。加 .waking 这个过渡类让 CSS 立刻隐藏 trigger；
   // .save-row 仍在 .awoken 阶段才浮出（见 resetToSleeping 清理）。
   sheet.classList.add('waking');
+  // 同步加 .awakening：CSS 用它把 .sheet-head 的 margin-top 从 -8px
+  // 切到 32px。之前这件事挂在 stage-area.awake 上（5500ms 才加），
+  // 导致文案 2700ms 飘入时还在旧位置，3 秒后整块往下跳 40px——用户
+  // 反馈「文案先从上方出现，再跳变回正确位置」就是这个 bug。现在
+  // 在 doAwakeReveal 起始就把位置定好，飘入直接落在最终位置上。
+  sheet.classList.add('awakening');
   body.classList.add('flashing');
   setTimeout(() => {
     // t≈0.38s：切到 awake，APNG 起播
@@ -758,7 +764,7 @@ function resetToSleeping({ closeAfter = true } = {}) {
   }
   body.classList.remove('awake', 'flashing', 'burst');
   stageArea.classList.remove('awake');
-  sheet.classList.remove('counting', 'pressing', 'awoken', 'waking');
+  sheet.classList.remove('counting', 'pressing', 'awoken', 'waking', 'awakening');
   // 清除唤醒成功屏临时隐藏副标题的标记，让 refreshHeadline 写入的
   // 触发器默认副标题可以正常显示。
   sheetSubtitle.classList.remove('is-hidden');
