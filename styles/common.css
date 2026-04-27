@@ -220,9 +220,14 @@ html, body {
 /* 落位态专用：飞行结束瞬间由 JS 追加 .landed —— 此时才放大 1.5x，
    保证"飞行前静态头像不预胀 + 落位后形象变大"两个需求同时满足。
    transform-origin: center top 与 object-position: center top 配合，
-   放大时以容器顶边为锚点向下扩，头顶稳在 navbar 可视带内。 */
+   放大时以容器顶边为锚点向下扩，头顶稳在 navbar 可视带内。
+   用户反馈（本轮）："归位后的全身形象需要再上移一些" —— 透明 PNG
+   顶部还有一段空白，视觉上头顶离 navbar 上沿比实际还要远，落位后
+   形象看着偏低。在 scale 之外叠一个 translateY(-6px) 把整张图往上
+   顶一点，让头顶靠近 navbar 上沿、肩部对准头像原位。数值是贴着
+   navbar 高度（~56px）试出来的，再大会穿出状态栏。 */
 .navbar .me-avatar.returned.landed > img {
-  transform: scale(1.5);
+  transform: translateY(-6px) scale(1.5);
   transform-origin: center top;
 }
 .navbar .me-info {
