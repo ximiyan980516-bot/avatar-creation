@@ -144,11 +144,30 @@
                   <span class="st-voice-label" id="speechVoiceLabel">晓晓</span>
                 </button>
                 <div class="st-voice-menu" id="speechVoiceMenu" role="menu">
-                  <button type="button" data-voice="zh-CN-XiaoxiaoNeural" data-label="晓晓">晓晓 · 温柔女声</button>
-                  <button type="button" data-voice="zh-CN-XiaoyiNeural"   data-label="晓伊">晓伊 · 活泼女声</button>
-                  <button type="button" data-voice="zh-CN-YunxiNeural"    data-label="云希">云希 · 阳光男声</button>
-                  <button type="button" data-voice="zh-CN-YunyangNeural"  data-label="云扬">云扬 · 沉稳男声</button>
-                  <button type="button" data-voice="zh-CN-YunjianNeural"  data-label="云健">云健 · 磁性男声</button>
+                  <!-- 每条结构：[文字区（点选=切换 + 试听）] [▶ 独立试听（点=只听不切）]
+                       "文字区切换后自动播放" 是现有行为（main.js speechVoiceMenu click）；
+                       右侧独立 ▶ 用 data-preview 标记，click 时 stopPropagation，
+                       这样用户可以先试听几个再决定切换哪个。 -->
+                  <button type="button" data-voice="zh-CN-XiaoxiaoNeural" data-label="晓晓">
+                    <span class="vm-text">晓晓 · 温柔女声</span>
+                    <span class="vm-preview" data-preview title="试听"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
+                  </button>
+                  <button type="button" data-voice="zh-CN-XiaoyiNeural"   data-label="晓伊">
+                    <span class="vm-text">晓伊 · 活泼女声</span>
+                    <span class="vm-preview" data-preview title="试听"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
+                  </button>
+                  <button type="button" data-voice="zh-CN-YunxiNeural"    data-label="云希">
+                    <span class="vm-text">云希 · 阳光男声</span>
+                    <span class="vm-preview" data-preview title="试听"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
+                  </button>
+                  <button type="button" data-voice="zh-CN-YunyangNeural"  data-label="云扬">
+                    <span class="vm-text">云扬 · 沉稳男声</span>
+                    <span class="vm-preview" data-preview title="试听"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
+                  </button>
+                  <button type="button" data-voice="zh-CN-YunjianNeural"  data-label="云健">
+                    <span class="vm-text">云健 · 磁性男声</span>
+                    <span class="vm-preview" data-preview title="试听"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -243,6 +262,33 @@
         </div>
       </div>
 
+      <!-- ============================================================
+           方案 B：语音编辑「全屏编辑页」
+           点气泡的 ✎ 时若 state.speechEdit === 'B'，则打开这一页；
+           上方是大号 textarea（Slogan 文案），下方是音色大列表——每条
+           都有独立的 ▶ 试听 + 右侧单选指示器。
+           保存=写入 slogan+切当前音色+关闭；取消=不改动关闭。
+           位置：放在 .sheet 之后、.fly-body 之前，让它的 z-index 可以
+           盖在 sheet 上，但遇到归位飞行（.fly-body）时不影响飞行轨迹。
+           ============================================================ -->
+      <div class="edit-page" id="editPage" aria-hidden="true">
+        <div class="ep-header">
+          <button class="ep-cancel" id="epCancelBtn" type="button">取消</button>
+          <div class="ep-title">编辑 Slogan</div>
+          <button class="ep-save" id="epSaveBtn" type="button">保存</button>
+        </div>
+        <div class="ep-body">
+          <div class="ep-section-label">我的 Slogan</div>
+          <textarea class="ep-textarea" id="epTextarea" maxlength="30" placeholder="写一句代表你的 Slogan…"></textarea>
+          <div class="ep-counter"><span id="epCount">0</span>/30</div>
+
+          <div class="ep-section-label" style="margin-top:18px">选择音色</div>
+          <div class="ep-voice-list" id="epVoiceList">
+            <!-- 由 JS 根据 VOICE_LABELS + 额外描述渲染（保持与气泡菜单一致） -->
+          </div>
+        </div>
+      </div>
+
       <!-- 飞行体（归位）：用活过来后的形象（静态定格即可，飞行途中不需要重播动画） -->
       <div class="fly-body" id="flyBody" data-return="1">
         <img src="assets/avatar/pink-portrait.png" alt="" />
@@ -281,6 +327,22 @@
       <div class="console-actions">
         <button class="btn" id="resetBtn">重置整个流程</button>
       </div>
+    </div>
+
+    <!-- ========================================================
+         第 4 个 console：生成页的语音编辑交互 —— A / B 两个方案对比
+         A：就地小弹出（沿用现状：气泡内编辑 + 气泡下方音色小菜单，每条可试听）
+         B：全屏编辑页（点编辑图标 → 打开独立编辑页：上方 textarea，下方音色大列表）
+         —————————————————————————————————————————————————————————
+         为什么做成独立 console 而不是放进现有的 4 组：语音编辑是「生成
+         以后」的二次编辑交互，与前三组（入口动效 / 唤醒 / 归位）的顺序
+         体验并列但独立，用户需要对 A/B 做并排试用才能体感差别。
+         ======================================================== -->
+    <div class="console">
+      <h2><span class="num">4</span>语音编辑交互</h2>
+      <p class="tip">形象生成后，点气泡编辑图标 → 进入文案 + 音色的二次编辑。两种交互路径对比：轻量就地 vs. 独立全屏。</p>
+      <div class="opts cols-2" id="speechEditOpts"></div>
+      <p class="tip" style="margin-top:10px; opacity:.7;">提示：唤醒完成出现粉色气泡后，点气泡上方的 ✎ 编辑按钮即可体验当前选中的方案。</p>
     </div>
 
   </div>

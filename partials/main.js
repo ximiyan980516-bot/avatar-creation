@@ -55,6 +55,16 @@ const RETURNS = [
   { id: 4, title: '跳进画框',     desc: '拟人小跳，先蹲再起' },
 ];
 
+// 语音编辑交互方案（Slogan 气泡点 ✎ 后的编辑路径）
+// A：就地小弹出——contenteditable 在气泡上直接改，音色是气泡下方的小菜单
+// B：全屏编辑页——独立一页，上文案 textarea，下音色卡片列表
+// 唯一区别在 "speechEditBtn 被点击后走哪条路径"，其它（最终存档到 localStorage、
+// TTS 调用、角色 slogan 显示）两个方案共享。
+const SPEECH_EDITS = [
+  { id: 'A', title: '🌟 A · 就地编辑（现状）',  desc: '文案在气泡内直接改，音色悬浮小菜单，每条可试听' },
+  { id: 'B', title: 'B · 全屏编辑页',          desc: '点 ✎ 打开独立页：上文案框，下音色大列表，每条可试听' },
+];
+
 // ======= 文案库：对话感强、有仪式感的文案
 //   规则：
 //   1. 所有文案不含 emoji（部分环境/字体下会出现乱码方框）
@@ -132,6 +142,7 @@ const state = {
   wake: 1,
   trigger: 'press',
   return: 1,
+  speechEdit: 'A',  // 语音编辑路径：A=就地弹出菜单 / B=全屏编辑页
   awake: false,
   pressing: false,
 };
@@ -201,6 +212,10 @@ renderOpts('triggerOpts', TRIGGERS, state.trigger, (id) => {
 renderOpts('returnOpts', RETURNS, state.return, (id) => {
   state.return = id;
   flyBody.dataset.return = id;
+});
+// 语音编辑方案 —— 由 speechEditBtn 的点击处理分发到具体路径
+renderOpts('speechEditOpts', SPEECH_EDITS, state.speechEdit, (id) => {
+  state.speechEdit = id;
 });
 
 // ======= effect 9「未读挂件」文案轮播
@@ -760,6 +775,11 @@ document.getElementById('resetBtn').addEventListener('click', () => {
   // 清掉"醒着末帧"dataURL 缓存：虽然 APNG 内容不变、重抓也是同一张图，
   // 但清掉能保证下次归位时一定是"这一次播完的帧"，语义更干净。
   cachedAwakeFrameDataURL = null;
+  // 若用户当前在方案 B 的编辑页里，重置流程也应把它关掉（=视作取消），
+  // 避免重置后页面背景回到 sleeping 态、但编辑页还悬在上面这种"穿模"。
+  if (editPage && editPage.classList.contains('show')) {
+    closeEditPage(false);
+  }
   resetToSleeping({ closeAfter: true });
 });
 
@@ -843,12 +863,22 @@ function exitEditMode(save) {
 }
 speechEditBtn.addEventListener('click', (e) => {
   e.stopPropagation();
-  enterEditMode();
+  // 方案 A：沿用就地 contenteditable；方案 B：打开全屏编辑页
+  if (state.speechEdit === 'B') {
+    openEditPage();
+  } else {
+    enterEditMode();
+  }
 });
 // 直接点击气泡文字也进入编辑（点 ▶ 按钮不触发，由按钮自身 stopPropagation 接管）
+// 同样按当前 speechEdit 分发——方案 B 下点文字会打开编辑页。
 speechText.addEventListener('click', () => {
   if (speech.classList.contains('editing')) return;
-  enterEditMode();
+  if (state.speechEdit === 'B') {
+    openEditPage();
+  } else {
+    enterEditMode();
+  }
 });
 speechText.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
@@ -875,6 +905,17 @@ speechVoiceBtn.addEventListener('click', (e) => {
   speechWrap.classList.toggle('voice-open');
 });
 speechVoiceMenu.addEventListener('click', (e) => {
+  // 先看看点的是不是"▶ 试听"那个小圆钮（.vm-preview[data-preview]）
+  // 若是：只试听该音色，不切换 currentVoice、不关菜单，用户可以连续听几条再决定
+  const previewEl = e.target.closest('[data-preview]');
+  if (previewEl) {
+    e.stopPropagation();
+    const btn = previewEl.closest('button[data-voice]');
+    if (!btn) return;
+    previewTTSInMenu(btn.dataset.voice, previewEl);
+    return;
+  }
+  // 否则按老行为：点选文字区 → 切音色 + 关菜单 + 试听新音色
   const btn = e.target.closest('button[data-voice]');
   if (!btn) return;
   e.stopPropagation();
@@ -979,4 +1020,199 @@ function showSpeechToast(msg, level = 'info', ttl = 4200) {
 speechPlayBtn.addEventListener('click', (e) => {
   e.stopPropagation();
   playSlogan();
+});
+
+// ============================================================
+//  语音编辑方案 A/B 共享：「纯试听」TTS
+//  说明：
+//  · 方案 A 的音色菜单每一行右侧 ▶ 小圆钮
+//  · 方案 B 的编辑页每个音色卡片左侧 ▶ 大圆钮
+//  两者都需要"只听不切换"的能力——用户未决定前，应该能反复预听不同音色，
+//  最终决策后再点选/保存。因此 previewTTS 不触碰 currentVoice/LocalStorage，
+//  只临时用 fetchTTS 拉该音色的音频试播；并维护 previewAudio 独立于主播放器
+//  currentAudio，避免互相打断造成状态混乱。
+//  previewTTSOn(el, voice)：
+//    - 传入某个 ▶ 按钮 DOM（可以是 .vm-preview 也可以是 .ep-voice-play）
+//    - 播放期间把 el.classList.add('playing')，结束/失败时移除；
+//      同时清除任何其他带 'playing' 的 preview 元素，保证\"同一时刻
+//      只有一个试听钮在播\"。
+// ============================================================
+let previewAudio = null;
+let previewPlayingEl = null;
+function clearPreviewPlayingUI() {
+  if (previewPlayingEl) {
+    previewPlayingEl.classList.remove('playing');
+    previewPlayingEl = null;
+  }
+}
+async function previewTTSOn(el, voice) {
+  // 再点一次同一个按钮 = 停止试听（常见交互心智）
+  if (previewAudio && previewPlayingEl === el) {
+    try { previewAudio.pause(); } catch (e) {}
+    previewAudio = null;
+    clearPreviewPlayingUI();
+    return;
+  }
+  // 切换到另一个按钮：先停旧的再播新的
+  if (previewAudio) {
+    try { previewAudio.pause(); } catch (e) {}
+    previewAudio = null;
+  }
+  clearPreviewPlayingUI();
+
+  // 试听文本优先用当前 Slogan（气泡里写什么就听什么，最贴合真实效果）；
+  // 若为空则退回一句通用问候。长度同样做 SLOGAN_MAX_LEN 截断，避免奇怪长文。
+  let text = (speechText.textContent || '').replace(/\s+/g, ' ').trim();
+  if (!text) text = '你好呀，这是试听';
+  if (text.length > SLOGAN_MAX_LEN) text = text.slice(0, SLOGAN_MAX_LEN);
+
+  el.classList.add('playing');
+  previewPlayingEl = el;
+  try {
+    const url = await fetchTTS(text, voice);
+    const audio = new Audio(url);
+    previewAudio = audio;
+    audio.addEventListener('ended', () => {
+      URL.revokeObjectURL(url);
+      if (previewAudio === audio) {
+        previewAudio = null;
+        clearPreviewPlayingUI();
+      }
+    });
+    audio.addEventListener('error', () => {
+      URL.revokeObjectURL(url);
+      if (previewAudio === audio) {
+        previewAudio = null;
+        clearPreviewPlayingUI();
+      }
+    });
+    await audio.play();
+  } catch (err) {
+    console.error('[TTS preview]', err);
+    clearPreviewPlayingUI();
+    previewAudio = null;
+    // 复用原有 toast 提示，避免两套错误文案分叉
+    const isHttps = location.protocol === 'https:';
+    if (isHttps) {
+      showSpeechToast('https 页面无法访问 http://localhost，请改用 http 访问或把页面部署到同域 /tts', 'error');
+    } else {
+      showSpeechToast('本地 TTS 服务未启动，请先运行：python3 tts_server.py', 'error', 6000);
+    }
+  }
+}
+// 薄封装：给气泡音色菜单的 ▶ 用；逻辑完全复用 previewTTSOn
+function previewTTSInMenu(voice, previewEl) {
+  previewTTSOn(previewEl, voice);
+}
+
+// ============================================================
+//  方案 B：全屏编辑页 —— 打开 / 渲染 / 保存 / 取消
+//  · openEditPage()：从当前气泡文案 + currentVoice 读取值，填充页面；滑入可见
+//  · closeEditPage(save)：save=true 写回 speechText/SLOGAN_KEY、切 currentVoice；
+//                         save=false 放弃，不改动任何状态
+//  · renderEpVoiceList()：根据 VOICE_LABELS 列表生成卡片；每张卡片结构：
+//      [▶ 试听]  [名称(粗)+描述(灰)]  [单选指示器]
+//    ▶ 复用 previewTTSOn；整行点击 = 选中该音色（页内临时态，保存后才落盘）
+// ============================================================
+const editPage     = document.getElementById('editPage');
+const epTextarea   = document.getElementById('epTextarea');
+const epCount      = document.getElementById('epCount');
+const epCancelBtn  = document.getElementById('epCancelBtn');
+const epSaveBtn    = document.getElementById('epSaveBtn');
+const epVoiceList  = document.getElementById('epVoiceList');
+
+// 与气泡菜单一致的 5 个音色（顺序/描述都对齐，维护时从此处改动）
+const VOICE_ROWS = [
+  { id: 'zh-CN-XiaoxiaoNeural', name: '晓晓', desc: '温柔女声' },
+  { id: 'zh-CN-XiaoyiNeural',   name: '晓伊', desc: '活泼女声' },
+  { id: 'zh-CN-YunxiNeural',    name: '云希', desc: '阳光男声' },
+  { id: 'zh-CN-YunyangNeural',  name: '云扬', desc: '沉稳男声' },
+  { id: 'zh-CN-YunjianNeural',  name: '云健', desc: '磁性男声' },
+];
+// 编辑页内\"临时\"选中的音色——进入页面时 = currentVoice；保存时才写回；
+// 这样用户可以在试听几个后点\"取消\"放弃本次变更。
+let epSelectedVoice = null;
+
+function renderEpVoiceList() {
+  epVoiceList.innerHTML = VOICE_ROWS.map(v => `
+    <div class="ep-voice-item ${v.id === epSelectedVoice ? 'active' : ''}" data-voice="${v.id}">
+      <button class="ep-voice-play" type="button" data-preview aria-label="试听 ${v.name}">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+      <div class="ep-voice-meta">
+        <div class="ep-voice-name">${v.name}</div>
+        <div class="ep-voice-desc">${v.desc}</div>
+      </div>
+      <div class="ep-voice-radio"></div>
+    </div>
+  `).join('');
+}
+// 事件委托在 epVoiceList 上，区分\"▶ 试听\"（stopPropagation）和\"整行选中\"
+epVoiceList.addEventListener('click', (e) => {
+  const playBtn = e.target.closest('[data-preview]');
+  if (playBtn) {
+    e.stopPropagation();
+    const row = playBtn.closest('.ep-voice-item');
+    if (row) previewTTSOn(playBtn, row.dataset.voice);
+    return;
+  }
+  const row = e.target.closest('.ep-voice-item');
+  if (!row) return;
+  epSelectedVoice = row.dataset.voice;
+  // 仅更新视觉高亮；currentVoice 要等用户点"保存"才真正切换
+  epVoiceList.querySelectorAll('.ep-voice-item').forEach(el => {
+    el.classList.toggle('active', el === row);
+  });
+});
+
+function openEditPage() {
+  // 先把\"气泡里现在显示的文案 + 当前音色\"同步进编辑页
+  epTextarea.value = (speechText.textContent || '').trim();
+  epCount.textContent = epTextarea.value.length;
+  epSelectedVoice = currentVoice;
+  renderEpVoiceList();
+  editPage.classList.add('show');
+  editPage.setAttribute('aria-hidden', 'false');
+  // 聚焦到文案框，配合 textarea 焦点高亮更清楚\"可以改\"
+  setTimeout(() => { try { epTextarea.focus(); } catch (e) {} }, 250);
+}
+function closeEditPage(save) {
+  // 关闭前先停掉任何仍在试听的音频，避免页面关掉后音还在响
+  if (previewAudio) {
+    try { previewAudio.pause(); } catch (e) {}
+    previewAudio = null;
+  }
+  clearPreviewPlayingUI();
+
+  if (save) {
+    let text = (epTextarea.value || '').replace(/\s+/g, ' ').trim();
+    if (text.length > SLOGAN_MAX_LEN) text = text.slice(0, SLOGAN_MAX_LEN);
+    if (!text) text = 'Hi，初次见面~';
+    speechText.textContent = text;
+    localStorage.setItem(SLOGAN_KEY, text);
+    if (epSelectedVoice && epSelectedVoice !== currentVoice) {
+      currentVoice = epSelectedVoice;
+      localStorage.setItem(VOICE_KEY, currentVoice);
+      refreshVoiceUI();
+    }
+  }
+  editPage.classList.remove('show');
+  editPage.setAttribute('aria-hidden', 'true');
+}
+// textarea 实时字数
+epTextarea.addEventListener('input', () => {
+  let v = epTextarea.value;
+  if (v.length > SLOGAN_MAX_LEN) {
+    v = v.slice(0, SLOGAN_MAX_LEN);
+    epTextarea.value = v;
+  }
+  epCount.textContent = v.length;
+});
+epCancelBtn.addEventListener('click', () => closeEditPage(false));
+epSaveBtn.addEventListener('click',   () => closeEditPage(true));
+// Esc 快速取消（桌面端预览便利）
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && editPage.classList.contains('show')) {
+    closeEditPage(false);
+  }
 });
