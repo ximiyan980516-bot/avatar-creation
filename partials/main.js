@@ -517,7 +517,10 @@ function doAwakeReveal() {
   const savedSlogan = (localStorage.getItem('qqxiu_slogan') || '').trim();
   const text = savedSlogan || SPEECHES[Math.floor(Math.random() * SPEECHES.length)];
   speechText.textContent = text;
-  stageArea.classList.add('awake');
+  // 注意：这里只写入文本，不切 stageArea.awake —— 气泡的显形门控
+  // 现在由 CSS 的 `.stage-area.awake .speech-wrap` 独占，切换时机
+  // 被推迟到下面 5500ms 的定时器里（APNG 播完之后），这样用户会先
+  // 看完整段"从沉睡到活过来"的 5s 动画，再看到气泡从角色肩边浮出。
 
   // —— 先把旧文案藏起来，再改写 —— //
   // 进入此函数时 sheet 通常仍带着上一轮 openSheet 里 replayReveal 留下的
@@ -568,6 +571,22 @@ function doAwakeReveal() {
   setTimeout(() => {
     replayReveal();
   }, 2700);
+
+  // t≈5.5s：APNG（总长 5.1s，t=0.38s 起播 → t≈5.48s 播完定格）
+  // 播放完成的瞬间，让 slogan 气泡从角色肩边浮出。这是"唤醒完成"
+  // 的收尾动作，紧接其后的 5.6s awoken 切保存按钮，形成
+  //   角色定格 → 气泡登场 → 底部切按钮
+  // 一气呵成的 100ms 收束节拍。
+  //
+  // handle 记到 state 上，如果在 5.5s 之内用户按了顶部 resetBtn
+  // 或别的路径提前走 resetToSleeping，我们能取消这个延时，避免
+  // 气泡在"已经回到 sleeping 态"后突然冒出来。
+  state.speechRevealTimer = setTimeout(() => {
+    state.speechRevealTimer = null;
+    // 再加一道闸：如果已经被 resetToSleeping 清掉 awake，就不显气泡
+    if (!state.awake) return;
+    stageArea.classList.add('awake');
+  }, 5500);
 
   // t≈5.6s：动画完全落地后再把底部切到保存按钮，给用户一个明显的
   // "动画结束、可以操作了"信号，避免在爆发/出字过程里误触。
@@ -731,6 +750,12 @@ function onFlyEnd() {
 function resetToSleeping({ closeAfter = true } = {}) {
   state.awake = false;
   state.pressing = false;
+  // 取消可能仍在倒计时的"APNG 播完后再显气泡"定时器。没取消的话，
+  // 用户在 5.5s 之内触发重置，气泡会在 sleeping 态下突然冒出。
+  if (state.speechRevealTimer) {
+    clearTimeout(state.speechRevealTimer);
+    state.speechRevealTimer = null;
+  }
   body.classList.remove('awake', 'flashing', 'burst');
   stageArea.classList.remove('awake');
   sheet.classList.remove('counting', 'pressing', 'awoken', 'waking');

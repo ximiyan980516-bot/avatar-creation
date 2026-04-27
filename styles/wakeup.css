@@ -406,16 +406,29 @@
   /* 让 wrap 的左边缘距 stage 中心约 86px（人物半宽 90px - 一点重叠让尾尖贴肩） */
   left: calc(50% + 86px);
   top: 18%;
-  /* 给工具条留垂直空间：工具条悬浮在气泡上方 28px 处 */
-  transform: translateY(-6px) scale(.85);
+  /* 给工具条留垂直空间：工具条悬浮在气泡上方 28px 处。
+     scale(.78) 比原先的 .85 再小一档——配合推迟到 APNG 播完后才
+     显形，入场动作更大更有"登场感"。 */
+  transform: translateY(-4px) scale(.78);
   transform-origin: left center;
   opacity: 0;
-  transition: all .35s ease;
+  /* 透明度与形变时长拉长到 .5s，并用柔和过冲曲线，让气泡"从角色
+     肩边慢慢浮出"，而不是之前瞬时的 .35s ease 线性淡入。 */
+  transition: opacity .5s ease, transform .55s cubic-bezier(.22,1.3,.36,1);
   /* 不接收点击，由内部 .speech / .speech-tools 各自接管 */
   pointer-events: none;
   z-index: 5;
 }
-.body.awake ~ .speech-wrap,
+/* 气泡显形唯一门控：.stage-area.awake
+   ──────────────────────────────────────────────────────────
+   之前用 `.body.awake ~ .speech-wrap, .stage-area.awake .speech-wrap`
+   两条并列选择器；但 .body.awake 在唤醒动画 t=0.38s 就会加上
+   （APNG 起播的同一时刻），气泡随之立刻飘出，把 5s APNG 的"从
+   沉睡到活过来"这段表演抢掉了。
+   用户反馈："slogan 气泡等 APNG 播放完后再出现"——所以把 `.body.awake`
+   这路去掉，只留 `.stage-area.awake` 这条。JS 里 stageArea 的
+   awake 切换被推迟到 APNG 播放结束后（见 doAwakeReveal 5500ms 定时），
+   这样气泡就会在角色完成整段睁眼动画后才登场。*/
 .stage-area.awake .speech-wrap {
   opacity: 1; transform: translateY(0) scale(1);
 }
