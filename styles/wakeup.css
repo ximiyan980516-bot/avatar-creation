@@ -563,6 +563,14 @@
   pointer-events: auto;
 }
 
+/* 方案 B：半屏编辑页
+   气泡上方的悬浮小工具条（✎ / 音色 / ▶）完全不出现，
+   入口退化为"直接点气泡文字"→ openEditPage()。
+   用 body[data-speech-edit="B"] 作用域限定，不影响方案 A。 */
+body[data-speech-edit="B"] .speech-tools {
+  display: none !important;
+}
+
 .st-btn {
   display: inline-flex; align-items: center; gap: 3px;
   height: 22px; padding: 0 7px;

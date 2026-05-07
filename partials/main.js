@@ -16,7 +16,7 @@ const EFFECTS = [
   { id: 3,  title: '🌟 头像抖动',  desc: '左右快速抖动 + 右上角漫画声波，像在喊话' },
   // —— 以下按原顺序保留 ——
   { id: 2,  title: '双层水波',    desc: '两圈错开扩散，"有动静"' },
-  { id: 4,  title: '比心轻拍',    desc: '头像旁轻轻冒爱心，俏皮一拍' },
+  { id: 4,  title: '粒子聚拢',    desc: '蓝紫/粉粒子从四周聚向头像，呼应蓄能爆发' },
   { id: 5,  title: '星粒环绕',    desc: '三色粒子绕行，二次元拉满' },
   { id: 6,  title: '流光描边',    desc: '彩色描边旋转，VIP 高级感' },
   { id: 8,  title: '情绪冒泡',    desc: '爱心从头像飘出，有性格' },
@@ -56,13 +56,16 @@ const RETURNS = [
 ];
 
 // 语音编辑交互方案（Slogan 气泡点 ✎ 后的编辑路径）
+// B：半屏编辑页——独立半屏，上文案 textarea，下音色卡片列表（推荐，首位默认）
 // A：就地小弹出——contenteditable 在气泡上直接改，音色是气泡下方的小菜单
-// B：全屏编辑页——独立一页，上文案 textarea，下音色卡片列表
 // 唯一区别在 "speechEditBtn 被点击后走哪条路径"，其它（最终存档到 localStorage、
 // TTS 调用、角色 slogan 显示）两个方案共享。
+// 注意：方案 B 选中时，不再展示气泡上方的悬浮小工具条（.speech-tools），
+// 入口退化为"直接点气泡文字"打开半屏编辑页——见 wakeup.css 中
+// `body[data-speech-edit="B"] .speech-tools` 的隐藏规则。
 const SPEECH_EDITS = [
-  { id: 'A', title: '🌟 A · 就地编辑（现状）',  desc: '文案在气泡内直接改，音色悬浮小菜单，每条可试听' },
-  { id: 'B', title: 'B · 全屏编辑页',          desc: '点 ✎ 打开独立页：上文案框，下音色大列表，每条可试听' },
+  { id: 'B', title: '🌟 B · 半屏编辑页',         desc: '点气泡打开独立半屏：上文案框，下音色大列表，每条可试听' },
+  { id: 'A', title: 'A · 就地编辑（现状）',      desc: '文案在气泡内直接改，音色悬浮小菜单，每条可试听' },
 ];
 
 // ======= 文案库：对话感强、有仪式感的文案
@@ -144,7 +147,7 @@ const state = {
   wake: 1,                // WAKES[0]   = 温柔睁眼
   trigger: 'click',       // TRIGGERS[0]= 单击唤醒
   return: 1,              // RETURNS[0] = 直线收缩
-  speechEdit: 'A',        // SPEECH_EDITS[0] = 就地编辑（A）
+  speechEdit: 'B',        // SPEECH_EDITS[0] = 半屏编辑页（B，推荐）
   awake: false,
   pressing: false,
 };
@@ -216,8 +219,12 @@ renderOpts('returnOpts', RETURNS, state.return, (id) => {
   flyBody.dataset.return = id;
 });
 // 语音编辑方案 —— 由 speechEditBtn 的点击处理分发到具体路径
+// 同时把当前方案写到 body[data-speech-edit] 上，CSS 据此决定是否显示
+// 气泡上方的悬浮小工具条（方案 B 下隐藏，只保留"点文字编辑"入口）。
+document.body.dataset.speechEdit = state.speechEdit;
 renderOpts('speechEditOpts', SPEECH_EDITS, state.speechEdit, (id) => {
   state.speechEdit = id;
+  document.body.dataset.speechEdit = id;
 });
 
 // ======= effect 9「未读挂件」文案轮播

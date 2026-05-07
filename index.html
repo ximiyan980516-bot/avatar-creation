@@ -62,6 +62,10 @@
             </em><em class="z"></em><em class="z"></em>
             <!-- 爱心（fx8） -->
             <b class="h"></b><b class="h"></b><b class="h"></b>
+            <!-- 聚拢粒子（fx4）：8 粒从四周飞向头像中心，
+                 视觉呼应 W2 蓄能爆发 .particles span 的 w2-gather 动画，
+                 只是尺寸按 40×40 入口头像缩比。默认隐藏，effect=4 才显示。 -->
+            <b class="p"></b><b class="p"></b><b class="p"></b><b class="p"></b><b class="p"></b><b class="p"></b><b class="p"></b><b class="p"></b>
             <!-- 挂件（fx9） -->
             <div class="pill">想见你</div>
           </div>
@@ -272,7 +276,7 @@
       </div>
 
       <!-- ============================================================
-           方案 B：语音编辑「全屏编辑页」
+           方案 B：语音编辑「半屏编辑页」
            点气泡的 ✎ 时若 state.speechEdit === 'B'，则打开这一页；
            上方是大号 textarea（Slogan 文案），下方是音色大列表——每条
            都有独立的 ▶ 试听 + 右侧单选指示器。

@@ -39,10 +39,11 @@
 
 /* effect 3 = 头像抖动（新版：右上角漫画声波 svg）
               不再依赖 .fx-outer > i 的半弧 DOM，改用 ::after 贴 svg
-   effect 4 = 比心轻拍（用 ::before 实现，不依赖 <i>） */
+   effect 4 = 粒子聚拢（8 粒从四周飞向头像中心，呼应 W2 蓄能爆发） */
 [data-effect="5"] .fx-outer > span { display: block; }
 [data-effect="7"] .fx-outer > em.z { display: block; }
 [data-effect="8"] .fx-outer > b.h { display: block; }
+[data-effect="4"] .fx-outer > b.p { display: block; }
 [data-effect="9"] .fx-outer > .pill { display: block; }
 
 /* ---------- 1. 呼吸光圈（最克制） ---------- */
@@ -152,31 +153,76 @@
   }
 }
 
-/* ---------- 4. 比心轻拍（替代原"漫画声波"，与方案 8 飘心做差异化）
-     一颗稍大的爱心在头像右上角"啵"一下出现-放大-淡出
-     节奏短促 1.4s 一次，比 fx8 的"上浮"更俏皮 ---------- */
+/* ---------- 4. 粒子聚拢（替代原"比心轻拍"，与 W2 蓄能爆发视觉呼应）
+   ──────────────────────────────────────────────────────────
+   设计意图：
+     · W2「蓄能爆发」是按住蓄力时 8 粒彩色粒子从 ±100~150px 外飞到
+       角色中心（wakeup.css 的 w2-gather）。入口头像方案 4 把这套
+       视觉收缩到 navbar 40×40 头像尺度上做成**循环**吸引注意。
+     · 起点半径 ~30px（.fx-outer 放到 100×100 给粒子留飞行空间），
+       8 个方位均匀分布；每粒 delay 错开 .12s，形成"接力涌入"的节奏。
+     · 配色呼应：主色取 W2 同款 #6B8AFE（蓝紫），穿插 #FF6BCB（粉，
+       对齐入口头像粉色基调），双色交替，不与 fx5 三色星粒撞视觉。
+     · 循环：每轮 2.4s，粒子淡入 → 聚到中心 → 在中心微放大并淡出，
+       比 W2 的一次性 forwards 更像"慢慢吸引注意"的循环入口动效。
+
+   尺寸对比（W2 → fx4）：
+     粒子大小   6px  →  4px
+     起点半径   ~120px →  ~30px
+     时长       1.2s → 2.4s（循环，留呼吸间隙） ---------- */
 [data-effect="4"] .fx-outer {
-  width: 40px; height: 40px;
+  /* 放大 fx-outer 容器到 100×100，以 .me-avatar 中心为锚，这样粒子
+     可以从头像边缘外 ~30px 处起飞，不会贴着头像生硬出现 */
+  width: 100px; height: 100px;
+  /* 粒子层整体压到头像下方：.me-avatar 是 position:relative 形成定位
+     父级，img 是默认 z-index:auto，给 fx-outer 设 z-index:-1 就会
+     落到 img 之后（同时仍在 .me-avatar 自身背景之上）。
+     注意不能让 .fx-outer 再形成独立堆叠上下文（不加 isolation/opacity<1），
+     否则 z-index:-1 只会相对自己内部生效，穿不回 img 后面。 */
+  z-index: -1;
 }
-[data-effect="4"] .fx-outer::before {
-  content: "";
+[data-effect="4"] .fx-outer > b.p {
   position: absolute;
-  right: -10px; top: -8px;
-  width: 14px; height: 14px;
-  background: #FF6BCB;
-  /* 同 fx8 的爱心 path */
-  clip-path: path("M5 9 C 1 6 0 3 2 1 C 4 -1 5 1 5 2 C 5 1 6 -1 8 1 C 10 3 9 6 5 9 Z");
-  transform-origin: 30% 70%;
+  /* 起点：容器中心（粒子的 --x/--y 会把它推到四周各方位） */
+  left: 50%; top: 50%;
+  width: 4px; height: 4px;
+  margin-left: -2px; margin-top: -2px;
+  border-radius: 50%;
+  /* 主色：与 W2 蓄能爆发同款蓝紫 */
+  background: radial-gradient(circle, #6B8AFE 0%, rgba(107,138,254,.35) 60%, transparent 75%);
   opacity: 0;
-  animation: fx4-puff 1.6s ease-out infinite;
-  filter: drop-shadow(0 1px 3px rgba(255,107,203,.4));
+  animation: fx4-gather 2.4s ease-out infinite;
+  pointer-events: none;
 }
-@keyframes fx4-puff {
-  0%   { opacity: 0; transform: scale(.4) rotate(-12deg); }
-  20%  { opacity: 1; transform: scale(1.25) rotate(6deg); }
-  35%  { transform: scale(1) rotate(0); }
-  70%  { opacity: 1; transform: scale(1.05) rotate(-2deg); }
-  100% { opacity: 0; transform: scale(.7) rotate(0); }
+/* 8 个方位，呼应 W2 的 8 粒粒子方位（同样 3 上 / 3 下 / 2 横的分布，
+   但半径按 40px 头像缩小到 ~28~34px）。
+   注意：这里用 :nth-of-type 而不是 :nth-child —— 因为 .fx-outer 里
+   .p 前面还有 5 个 <i>、3 个 <span>、3 个 <em>、3 个 <b class="h">，
+   用 :nth-child(1~8) 永远匹配不到 .p，导致 --x/--y 为空、动画失效。
+   而 :nth-of-type 按标签类型（<b>）计数：.h 是 1~3，.p 就是 4~11。 */
+[data-effect="4"] .fx-outer > b.p:nth-of-type(4)  { --x: -30px; --y: -26px; animation-delay: 0s;    }
+[data-effect="4"] .fx-outer > b.p:nth-of-type(5)  { --x:  32px; --y: -22px; animation-delay: .12s;  }
+[data-effect="4"] .fx-outer > b.p:nth-of-type(6)  { --x: -26px; --y:  20px; animation-delay: .24s;  }
+[data-effect="4"] .fx-outer > b.p:nth-of-type(7)  { --x:  28px; --y:  18px; animation-delay: .36s;  }
+[data-effect="4"] .fx-outer > b.p:nth-of-type(8)  { --x:   0;   --y: -32px; animation-delay: .48s;  }
+[data-effect="4"] .fx-outer > b.p:nth-of-type(9)  { --x: -34px; --y:   2px; animation-delay: .60s;  }
+[data-effect="4"] .fx-outer > b.p:nth-of-type(10) { --x:  34px; --y:   4px; animation-delay: .72s;  }
+[data-effect="4"] .fx-outer > b.p:nth-of-type(11) { --x:   0;   --y:  30px; animation-delay: .84s;  }
+/* 偶数粒子换粉色，双色交替让循环更活，同时保留对入口粉色基调的呼应。
+   这里的"偶数"对应 .p 序列里的第 2/4/6/8 颗，即 nth-of-type 5/7/9/11。 */
+[data-effect="4"] .fx-outer > b.p:nth-of-type(5),
+[data-effect="4"] .fx-outer > b.p:nth-of-type(7),
+[data-effect="4"] .fx-outer > b.p:nth-of-type(9),
+[data-effect="4"] .fx-outer > b.p:nth-of-type(11) {
+  background: radial-gradient(circle, #FF6BCB 0%, rgba(255,107,203,.35) 60%, transparent 75%);
+}
+/* 聚拢关键帧：等价于 W2 的 w2-gather（外飞—聚中—放大淡出），
+   但因为是循环 infinite，首尾都归零 opacity，避免每轮起始"闪一下"。 */
+@keyframes fx4-gather {
+  0%   { transform: translate(var(--x), var(--y)) scale(.5); opacity: 0; }
+  25%  { opacity: 1; }
+  70%  { transform: translate(0, 0) scale(1); opacity: .9; }
+  100% { transform: translate(0, 0) scale(1.6); opacity: 0; }
 }
 
 /* ---------- 5. 星粒环绕 ---------- */
